@@ -120,6 +120,7 @@ blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18
 <body>
 <article>
   <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <h1>El bug de idempotencia que hace que tu usuario pague y no reciba nada</h1>
   <p class="meta-art">2026-09-01</p>
   <p>El síntoma es siempre el mismo y siempre tarda un día en aparecer, porque necesita tráfico real: el pago está <code>approved</code> en el panel de MercadoPago, el dinero entró, y el usuario no tiene acceso a nada. En los logs hay una sola línea útil:</p>
 <pre data-lang=""><code>duplicate key value violates unique constraint &quot;pagos_procesados_pkey&quot; (SQLSTATE 23505)</code></pre>
