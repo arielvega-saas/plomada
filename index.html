@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagos LATAM Kit — MercadoPago para tu SaaS en Next.js</title>
+<meta name="description" content="Los rails de pago que ningún boilerplate trae: MercadoPago, Stripe y Lemon Squeezy en Next.js, con las 7 lecciones de producción adentro.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+a.card.art{text-decoration:none;display:block;transition:border-color .15s}
+a.card.art:hover{border-color:var(--acento)}
+a.card.art h3{color:var(--texto)}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="env">
+  <div class="eyebrow">Plomada · Next.js + Supabase</div>
+  <h1>Tu boilerplate no cobra en <span class="hl">Argentina</span>.</h1>
+  <p class="sub">ShipFast, Supastarter y Makerkit integran Stripe y listo. Stripe no opera en
+  Argentina. Este kit es la parte que falta: <strong>MercadoPago, Stripe y Lemon Squeezy</strong>
+  en la misma base, con los siete bugs de producción ya resueltos.</p>
+  <div class="cta-row">
+    <a class="btn" href="#lista">Avisame cuando salga</a>
+    <a class="btn ghost" href="#lecciones">Ver las 7 lecciones</a>
+  </div>
+  <p class="nota">Sin fecha prometida ni cuenta regresiva falsa. Se avisa cuando esté.</p>
+</div></header>
+
+<section><div class="env">
+  <h2>El problema, concreto</h2>
+  <p class="lead">Integrar MercadoPago no es difícil por la API. Es difícil por lo que la
+  documentación no dice.</p>
+  <div class="cols">
+    <div class="card bad"><h3>Webhooks sin firmar</h3><p>En el plan gratuito MercadoPago no
+    firma con HMAC. Si confiás en la notificación, cualquiera paga ARS 1 y se activa tu producto.</p></div>
+    <div class="card bad"><h3>Notificaciones duplicadas</h3><p>Llegan varias por el mismo pago
+    (<code>pending</code> → <code>approved</code>). El dedupe ingenuo hace que el comprador
+    pague y no reciba nada.</p></div>
+    <div class="card bad"><h3>Monedas que rechaza</h3><p>Una cuenta argentina no emite MXN ni
+    EUR. Sin fallback, cada comprador mexicano recibe un 400 y la venta se pierde en silencio.</p></div>
+    <div class="card bad"><h3>Reintentos infinitos</h3><p>Devolver 500 en un pago rechazado
+    deja al proveedor reintentando esa notificación para siempre.</p></div>
+  </div>
+</div></section>
+
+<section><div class="env">
+  <h2>El bug que más caro sale</h2>
+  <p class="lead">Este es el orden intuitivo de un webhook. Y está mal.</p>
+<pre><span class="c-com">// ❌ El comprador paga y no recibe nada</span>
+<span class="c-key">const</span> { error } = <span class="c-key">await</span> db.from(<span class="c-str">"webhook_events"</span>).insert({ id: <span class="c-str">`mp:${paymentId}`</span> });
+<span class="c-key">if</span> (error?.code === <span class="c-str">"23505"</span>) <span class="c-key">return</span> { alreadyProcessed: <span class="c-key">true</span> };  <span class="c-bad">// ← sale por acá</span>
+<span class="c-key">const</span> payment = <span class="c-key">await</span> fetchPayment(paymentId);</pre>
+  <p class="lead">La notificación <code>pending</code> ocupa la clave y devuelve. Cuando llega la
+  <code>approved</code> —la única que importa— choca con el unique, la función sale temprano y
+  <strong>el acceso no se activa nunca</strong>. En los logs todo parece bien: el webhook devolvió 200.</p>
+<pre><span class="c-com">// ✅ Resolver el pago primero; el estado va en la clave</span>
+<span class="c-key">const</span> payment = <span class="c-key">await</span> fetchPayment(paymentId);        <span class="c-com">// fuente de verdad</span>
+<span class="c-key">if</span> (payment.status !== <span class="c-str">"approved"</span>) <span class="c-key">return</span> { ok: <span class="c-key">false</span> };
+<span class="c-key">const</span> eventId = <span class="c-str">`mp:${paymentId}:approved`</span>;           <span class="c-com">// ya no colisiona</span></pre>
+</div></section>
+
+<section id="lecciones"><div class="env">
+  <h2>Las 7 lecciones que vienen adentro</h2>
+  <p class="lead">Ninguna es teórica: salieron de un producto que cobró con los tres rails en
+  simultáneo. Están comentadas en el archivo donde importan.</p>
+  <ol class="lecciones">
+    <li><b>Resolvé el pago antes de aplicar idempotencia</b><span>Si no, el comprador paga y no recibe nada.</span></li>
+    <li><b>Validá el monto antes de dar acceso</b><span>Sin HMAC, el <code>external_reference</code> no alcanza como prueba.</span></li>
+    <li><b>Devolvé 500 solo en errores transitorios</b><span>Tabla completa de qué status va en cada caso.</span></li>
+    <li><b>Una cuenta argentina solo emite ARS, USD y BRL</b><span>El resto necesita fallback o perdés la venta.</span></li>
+    <li><b>Cada rail vuelve por un parámetro distinto</b><span><code>?mp=success</code>, <code>?checkout=success</code>, <code>?ls=success</code>.</span></li>
+    <li><b>El reembolso siempre tiene que poder revocar</b><span>Va antes de la validación de monto, no después.</span></li>
+    <li><b>No borres la fila de dedupe cuando algo falla</b><span>Marcala. Es tu único panel de salud.</span></li>
+  </ol>
+</div></section>
+
+<section><div class="env">
+  <h2>Dónde encaja</h2>
+  <p class="lead">No compite con los boilerplates completos: cubre lo que a todos les falta.</p>
+  <div class="tabla-wrap"><table>
+    <tr><th>Producto</th><th>Precio</th><th>Stripe</th><th>MercadoPago</th><th>Alcance</th></tr>
+    <tr><td>ShipFast</td><td>USD 199</td><td class="si">Sí</td><td class="no">No</td><td>Boilerplate completo</td></tr>
+    <tr><td>Supastarter</td><td>USD 299</td><td class="si">Sí</td><td class="no">No</td><td>Boilerplate completo</td></tr>
+    <tr><td>Makerkit</td><td>USD 299–599</td><td class="si">Sí</td><td class="no">No</td><td>Boilerplate completo</td></tr>
+    <tr><td><strong>Pagos LATAM Kit</strong></td><td><strong>a definir</strong></td><td class="si">Sí</td><td class="si"><strong>Sí</strong></td><td>Solo la capa de pagos — los 3 rails</td></tr>
+  </table></div>
+  <p class="nota">Los tres son buenos productos y tienen más alcance que este kit. Si querés todo
+  el andamiaje, compralos — y usá esto para el rail que les falta.</p>
+</div></section>
+
+<section><div class="env">
+  <h2>108 tests, y no son decorativos</h2>
+  <p class="lead">Cualquiera puede decir que su código está probado. Esto es lo que pasa
+  cuando se rompe a propósito cada control: si los tests no cazaran el fallo, no servirían
+  de nada.</p>
+  <div class="tabla-wrap"><table>
+    <tr><th>Si se rompe…</th><th>Tests que fallan</th></tr>
+    <tr><td>el orden del webhook (a la forma intuitiva)</td><td><strong>10</strong></td></tr>
+    <tr><td>la validación de monto de Stripe y Lemon Squeezy</td><td><strong>8</strong></td></tr>
+    <tr><td>la verificación de firma HMAC de los dos rails</td><td><strong>9</strong></td></tr>
+  </table></div>
+  <p class="nota">El kit se typecheckea y se testea solo, antes de que copies una línea:
+  <code>npm install &amp;&amp; npx tsc --noEmit &amp;&amp; npx vitest run</code>.</p>
+</div></section>
+
+<section><div class="env">
+  <h2>Lo que este kit NO es</h2>
+  <div class="honesto">
+    <strong>Por adelantado, porque se nota en la primera hora:</strong>
+    <ul>
+      <li>No es un boilerplate completo: no trae auth, landing, dashboard ni emails. Es la capa de pagos.</li>
+      <li>Los tres rails cubren <strong>pago único</strong> (con cuotas en MercadoPago). Los eventos de suscripción llegan documentados y se ignoran sin romper, pero el que los cablee sos vos.</li>
+      <li>El rate limiting es por proceso: con varias réplicas el techo real es N × tokens. Está documentado y la interfaz permite cambiar a Redis sin tocar los llamadores.</li>
+      <li>La conversión a USD es un snapshot para reportes, no contabilidad.</li>
+    </ul>
+  </div>
+</div></section>
+
+<section id="lista"><div class="env">
+  <div class="panel-lista">
+    <h2>Lista de espera</h2>
+    <p class="lead">Te aviso cuando esté listo, con el precio de lanzamiento. Un solo mail, sin
+    secuencia de marketing. Si me respondés contándome qué estás construyendo, mejor: eso
+    decide qué se termina primero.</p>
+    <form id="f" method="POST">
+      <input type="email" name="email" placeholder="tu@mail.com" required aria-label="Tu email">
+      <button class="btn" type="submit">Avisame</button>
+    </form>
+    <p class="nota" id="msg"></p>
+  </div>
+</div></section>
+
+
+<section id="articulos"><div class="env">
+  <h2>Lo que aprendimos, escrito</h2>
+  <p class="lead">Las lecciones están en el kit, pero también son notas públicas: si te
+  resuelven el problema sin comprar nada, mejor.</p>
+  <div class="cols">
+    <a class="card art" href="articulos/boilerplates-saas-2026-comparativa.html"><h3>Boilerplates de SaaS en 2026: cuál conviene si cobrás en LATAM</h3><p>ShipFast, Supastarter y Makerkit comparados con honestidad: en qué es mejor cada uno, qué comparten los tres, y qué te falta si cobrás desde Argentina.</p></a>
+    <a class="card art" href="articulos/cobrar-en-argentina-y-latam-desde-una-app.html"><h3>Cómo cobrar en Argentina y LATAM desde tu app: MercadoPago, Stripe o Lemon Squeezy</h3><p>Qué monedas emite cada rail, cuál deposita en un banco argentino y cuándo conviene cada uno. Con el límite real de la cuenta MLA y el retorno del checkout.</p></a>
+    <a class="card art" href="articulos/integrar-mercadopago-en-nextjs.html"><h3>Integrar MercadoPago en Next.js (App Router): la guía que me hubiera ahorrado tres días</h3><p>Crear la preferencia con fetch a la API REST, recibir el webhook y validar el monto. Con el orden correcto de idempotencia y qué status HTTP devolver.</p></a>
+    <a class="card art" href="articulos/webhook-mercadopago-idempotencia.html"><h3>El bug de idempotencia que hace que tu usuario pague y no reciba nada</h3><p>MercadoPago manda varias notificaciones IPN por el mismo pago. Si deduplicás antes de resolver el estado, el usuario paga y nunca recibe lo que compró.</p></a>
+  </div>
+</div></section>
+
+<footer><div class="env">
+  Producido por <strong>Plomada</strong> — la herramienta que dice qué está realmente derecho. Las lecciones vienen de un producto real
+  que cobró con MercadoPago, Stripe y Lemon Squeezy en simultáneo.
+</div></footer>
+
+<script>
+// El endpoint se define al publicar. Sin endpoint, cae a mailto — funciona
+// desde el minuto cero y sin depender de ningún servicio de terceros.
+var ENDPOINT = ""; // ← completar al publicar
+var f = document.getElementById('f'), msg = document.getElementById('msg');
+f.addEventListener('submit', function (e) {
+  e.preventDefault();
+  var email = f.email.value.trim();
+  if (!email) return;
+  if (!ENDPOINT) {
+    location.href = 'mailto:vegaariel976+plomada@gmail.com?subject=' +
+      encodeURIComponent('Lista de espera — Pagos LATAM Kit') +
+      '&body=' + encodeURIComponent('Anotame: ' + email + '\n\nEstoy construyendo: ');
+    msg.textContent = 'Se abre tu cliente de mail con el mensaje listo.';
+    return;
+  }
+  fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, origen: 'landing' })
+  }).then(function (r) {
+    msg.textContent = r.ok ? 'Listo, quedaste anotado.' : 'No se pudo guardar. Probá de nuevo.';
+    if (r.ok) f.reset();
+  }).catch(function () { msg.textContent = 'No se pudo guardar. Probá de nuevo.'; });
+});
+</script>
+</body>
+</html>

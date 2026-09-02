@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boilerplates de SaaS en 2026: cuál conviene si cobrás en LATAM — Plomada</title>
+<meta name="description" content="ShipFast, Supastarter y Makerkit comparados con honestidad: en qué es mejor cada uno, qué comparten los tres, y qué te falta si cobrás desde Argentina.">
+<meta name="keywords" content="boilerplate saas, shipfast vs makerkit, supastarter, boilerplate next.js supabase, starter kit saas 2026">
+<link rel="canonical" href="https://arielvega-saas.github.io/plomada/articulos/boilerplates-saas-2026-comparativa.html">
+<meta property="og:title" content="Boilerplates de SaaS en 2026: cuál conviene si cobrás en LATAM">
+<meta property="og:description" content="ShipFast, Supastarter y Makerkit comparados con honestidad: en qué es mejor cada uno, qué comparten los tres, y qué te falta si cobrás desde Argentina.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+</style>
+<style>
+article{max-width:720px;margin:0 auto;padding:0 22px}
+article h1{font-size:clamp(27px,5vw,40px);margin:26px 0 14px}
+article h2{margin:38px 0 10px;font-size:24px}
+article h3{margin:28px 0 8px;font-size:18px;font-weight:700}
+article p{margin:14px 0}
+article ul,article ol{margin:14px 0;padding-left:22px}
+article li{margin:7px 0}
+article li::marker{color:var(--acento)}
+article code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:.88em;color:var(--acento2)}
+article pre code{background:none;padding:0;color:var(--texto)}
+blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18px 0;
+  padding:12px 18px;border-radius:0 8px 8px 0;color:var(--tenue)}
+.volver{display:inline-block;margin:26px 0 0;color:var(--tenue);text-decoration:none;font-size:14.5px}
+.volver:hover{color:var(--acento2)}
+.meta-art{color:var(--tenue);font-size:14px;margin:0 0 8px}
+.cierre{margin-top:44px;padding:22px;background:var(--panel);border:1px solid var(--linea);
+  border-radius:12px}
+.cierre h3{margin:0 0 8px}
+</style>
+</head>
+<body>
+<article>
+  <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <p class="meta-art">2026-09-01</p>
+  <p>Antes de armar los rails de pago de nuestro propio producto revisamos si convenía partir de un boilerplate pago. La conclusión fue incómoda: por más que compráramos cualquiera de los tres grandes, la integración de MercadoPago la íbamos a tener que escribir igual, desde cero, porque ninguno la trae.</p>
+<p>Esta nota es esa comparación, con los precios y el alcance verificados en sus propios sitios en septiembre de 2026. Sin humo y sin pegarle a nadie: los tres productos que están abajo son buenos, están mantenidos y valen lo que cobran para el caso de uso para el que fueron hechos.</p>
+<h2>Qué te está vendiendo realmente un boilerplate</h2>
+<p>No es código. El código de un login con Supabase lo escribís en una tarde, y una IA te lo escribe en diez minutos. Lo que comprás es <strong>decisiones ya tomadas y ya sufridas</strong>: qué librería de mails, cómo se estructura el multi-tenant, dónde va la lógica de suscripciones, qué hacer cuando el webhook de facturación llega dos veces. Esas decisiones son las que te consumen las semanas, no el CRUD.</p>
+<p>Con ese criterio, la pregunta correcta no es "¿cuánto código me ahorra?" sino "¿las decisiones que ya tomó son las que yo hubiera tomado?".</p>
+<h2>ShipFast — USD 199</h2>
+<p>El más chico, el más rápido y el que tiene la comunidad más ruidosa. Next.js App Router, autenticación, Stripe o Lemon Squeezy, mails, SEO y una landing lista. La filosofía es explícita: lanzar en días, no en meses.</p>
+<p><strong>En qué es genuinamente mejor:</strong> en el tiempo desde el <code>git clone</code> hasta tener algo en producción cobrando. No hay abstracciones que entender antes de empezar. La documentación es corta porque el código es corto. Y la comunidad de Discord es enorme y activa, lo que en la práctica significa que cualquier problema que tengas ya lo tuvo alguien y está respondido.</p>
+<p><strong>El trade-off honesto:</strong> no es multi-tenant. Si tu producto necesita equipos, organizaciones o roles, vas a construir eso vos, y es la parte cara. Está pensado para productos de un solo usuario o de una sola cuenta.</p>
+<h2>Supastarter — USD 299</h2>
+<p>El más prolijo como pieza de ingeniería. Monorepo con Turborepo, TypeScript estricto en todo, versiones para Next.js, Nuxt y SvelteKit, y una capa de facturación que abstrae Stripe, Lemon Squeezy, Paddle y Polar detrás de la misma interfaz.</p>
+<p><strong>En qué es genuinamente mejor:</strong> en la internacionalización y en la abstracción de proveedores. La i18n viene de fábrica y bien hecha, no atornillada después. Y esa capa de facturación con varios proveedores detrás de una interfaz común es exactamente el diseño correcto —es, de hecho, el diseño que hay que copiar si vas a soportar más de un rail.</p>
+<p><strong>El trade-off honesto:</strong> el monorepo tiene una curva. Si nunca trabajaste con Turborepo y paquetes internos, el primer día lo vas a pasar entendiendo dónde va cada cosa en vez de escribiendo tu producto.</p>
+<h2>Makerkit — USD 299 a 599</h2>
+<p>El más maduro y el más completo. Next.js sobre Supabase (con variantes), cuentas personales y de equipo, roles y permisos, invitaciones, facturación por asientos, y una documentación que es de las mejores del rubro. Los tiers de precio separan la versión de un solo usuario de la versión con equipos.</p>
+<p><strong>En qué es genuinamente mejor:</strong> en el multi-tenant serio. Las cuentas de equipo, los roles, las invitaciones y las políticas RLS de Supabase ya vienen resueltas y probadas, y eso es semanas de trabajo que además es fácil de hacer mal —una RLS floja es una filtración de datos entre clientes. Si estás haciendo B2B, esto solo justifica el precio.</p>
+<p><strong>El trade-off honesto:</strong> es mucho producto. Si lo que vendés es un producto de un solo usuario, vas a pasar más tiempo sacando cosas que agregándolas, y el precio del tier con equipos no se justifica.</p>
+<h2>Lo que comparten los tres, y que sí importa acá</h2>
+<p>Los tres están construidos alrededor de un supuesto razonable y explícito: <strong>el que compra paga con tarjeta internacional, en dólares o en euros, vía Stripe, Lemon Squeezy o Paddle.</strong></p>
+<p>Para su público objetivo, ese supuesto es correcto. Un indie hacker que vende una herramienta de SEO a suscriptores en Estados Unidos y Europa no necesita nada más, y agregar rails regionales le sumaría complejidad sin darle una sola venta.</p>
+<p>El problema aparece cuando tu comprador está en Argentina, Brasil o México. Ahí el supuesto se cae por dos motivos distintos:</p>
+<ol><li><strong>Medios de pago.</strong> Una parte grande de los compradores de la región paga con dinero en cuenta de Mercado Pago, con débito local, o en efectivo. Y el pago en cuotas no es un lujo: para un producto de precio medio, es lo que decide la compra.</li><li><strong>De qué lado estás vos.</strong> Stripe no abre cuentas para entidades argentinas. Si estás en Argentina sin una LLC, el rail que trae tu boilerplate no lo podés usar tal cual viene.</li></ol>
+<p>No es una crítica a los productos. MercadoPago es un rail de un puñado de países, con una API que tiene sus propias reglas y sus propias trampas. Es perfectamente razonable que un producto internacional no lo priorice.</p>
+<p>Pero el hueco existe y es medible.</p>
+<h2>Cuánto cuesta el hueco</h2>
+<p>La integración de MercadoPago no es difícil. Es larga, y está sembrada de cosas que no descubrís hasta que hay tráfico real:</p>
+<ul><li>El SDK oficial rompe en Edge runtime; hay que ir a la API REST con <code>fetch</code>.</li><li>MercadoPago manda varias notificaciones por el mismo pago. Si deduplicás antes de resolver el estado del pago, la notificación de <code>pending</code> bloquea a la de <code>approved</code> y el usuario paga sin recibir nada. Ese bug no lo ves en desarrollo, porque el sandbox no reproduce la secuencia.</li><li>Las notificaciones pueden llegar sin firma HMAC. Si no revalidás el monto contra la API, alguien paga ARS 1 y se activa el producto.</li><li>Devolver 500 en el caso equivocado te genera reintentos infinitos; devolver 200 en el equivocado te hace perder el pago para siempre.</li><li>Una cuenta argentina solo emite ARS, USD y BRL. MXN y EUR los rechaza con <code>currency_id invalid</code>, y el comprador mexicano ve un error 400.</li><li>Cada rail avisa el retorno con un parámetro distinto (<code>?mp=</code>, <code>?checkout=</code>, <code>?ls=</code>). Si tu analytics escucha uno solo, las ventas de los otros no aparecen en tus métricas.</li><li>Reembolsos y contracargos tienen que revocar el acceso de forma idempotente, semanas después de la compra.</li></ul>
+<p>Esa lista no se arma leyendo la documentación: cada punto salió de encontrarlo en un producto que ya estaba en producción con los tres rails conectados. Escribir el código son horas; entender por qué no funciona es lo que lleva días.</p>
+<h2>Cómo decidir</h2>
+<p><strong>Si cobrás solo en dólares o euros, a un público internacional:</strong> comprá uno de los tres y no leas más. ShipFast si querés velocidad y tu producto es de un solo usuario; Makerkit si hacés B2B con equipos; Supastarter si valorás la prolijidad del código y necesitás varios idiomas. Un rail regional no te va a dar ninguna venta extra y te va a sumar mantenimiento.</p>
+<p><strong>Si cobrás en Argentina o LATAM:</strong> el boilerplate te resuelve auth, base, mails y landing, y te deja el cobro por la mitad. Podés integrar MercadoPago vos —es totalmente factible, y los artículos de este sitio tienen el código completo, gratis— o partir de algo que ya lo traiga probado.</p>
+<p><strong>Si es tu primer proyecto y estás aprendiendo:</strong> no compres nada. Armá el login y el checkout a mano una vez. El valor de un boilerplate es proporcional a la cantidad de veces que ya hiciste ese trabajo, porque recién ahí entendés qué decisiones te está ahorrando.</p>
+<p>Un detalle práctico: los tres se venden como pago único con actualizaciones de por vida, así que el gasto no se repite. Y los precios de arriba son los de septiembre de 2026 — verificalos antes de comprar, que cambian.</p>
+<hr>
+<p><strong>Pagos LATAM Kit</strong> es el intento de cubrir ese hueco puntual: Next.js App Router con MercadoPago, Stripe y Lemon Squeezy sobre Supabase, con todas las lecciones de esta nota ya resueltas en el código y en los tests.</p>
+<p>Si te sirve, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
+  <div class="cierre">
+    <h3>Pagos LATAM Kit</h3>
+    <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
+    con 108 tests y las 7 lecciones de producción adentro.</p>
+    <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
+  </div>
+  <a class="volver" href="../index.html">← Volver</a>
+</article>
+</body>
+</html>

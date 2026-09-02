@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El bug de idempotencia que hace que tu usuario pague y no reciba nada — Plomada</title>
+<meta name="description" content="MercadoPago manda varias notificaciones IPN por el mismo pago. Si deduplicás antes de resolver el estado, el usuario paga y nunca recibe lo que compró.">
+<meta name="keywords" content="idempotencia webhook, webhook mercadopago, notificaciones ipn, error 23505 postgres, deduplicar pagos">
+<link rel="canonical" href="https://arielvega-saas.github.io/plomada/articulos/webhook-mercadopago-idempotencia.html">
+<meta property="og:title" content="El bug de idempotencia que hace que tu usuario pague y no reciba nada">
+<meta property="og:description" content="MercadoPago manda varias notificaciones IPN por el mismo pago. Si deduplicás antes de resolver el estado, el usuario paga y nunca recibe lo que compró.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+</style>
+<style>
+article{max-width:720px;margin:0 auto;padding:0 22px}
+article h1{font-size:clamp(27px,5vw,40px);margin:26px 0 14px}
+article h2{margin:38px 0 10px;font-size:24px}
+article h3{margin:28px 0 8px;font-size:18px;font-weight:700}
+article p{margin:14px 0}
+article ul,article ol{margin:14px 0;padding-left:22px}
+article li{margin:7px 0}
+article li::marker{color:var(--acento)}
+article code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:.88em;color:var(--acento2)}
+article pre code{background:none;padding:0;color:var(--texto)}
+blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18px 0;
+  padding:12px 18px;border-radius:0 8px 8px 0;color:var(--tenue)}
+.volver{display:inline-block;margin:26px 0 0;color:var(--tenue);text-decoration:none;font-size:14.5px}
+.volver:hover{color:var(--acento2)}
+.meta-art{color:var(--tenue);font-size:14px;margin:0 0 8px}
+.cierre{margin-top:44px;padding:22px;background:var(--panel);border:1px solid var(--linea);
+  border-radius:12px}
+.cierre h3{margin:0 0 8px}
+</style>
+</head>
+<body>
+<article>
+  <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <p class="meta-art">2026-09-01</p>
+  <p>El síntoma es siempre el mismo y siempre tarda un día en aparecer, porque necesita tráfico real: el pago está <code>approved</code> en el panel de MercadoPago, el dinero entró, y el usuario no tiene acceso a nada. En los logs hay una sola línea útil:</p>
+<pre data-lang=""><code>duplicate key value violates unique constraint &quot;pagos_procesados_pkey&quot; (SQLSTATE 23505)</code></pre>
+<p>Y el handler la trata como éxito, porque "ya estaba procesado". Nunca estuvo procesado. Se procesó la notificación equivocada.</p>
+<h2>MercadoPago no manda una notificación por pago</h2>
+<p>Manda varias, por el mismo pago, a medida que el pago cambia de estado. Es correcto que lo haga —así te enterás de un contracargo tres semanas después— pero rompe la suposición de que un <code>data.id</code> equivale a un evento.</p>
+<p>Esta es la secuencia real de una compra con tarjeta, medida con logs en producción:</p>
+<pre data-lang=""><code>t=0.0s  el usuario confirma el pago en el checkout
+t=0.4s  MP  ──POST /api/webhooks/mercadopago──▶  { type:&quot;payment&quot;, data:{ id:&quot;128744391&quot; } }
+             tu handler: GET /v1/payments/128744391  →  status: &quot;pending&quot;
+
+t=2.9s  el emisor de la tarjeta aprueba
+
+t=3.1s  MP  ──POST /api/webhooks/mercadopago──▶  { type:&quot;payment&quot;, data:{ id:&quot;128744391&quot; } }
+             ▲ MISMO data.id, distinto significado
+             tu handler: GET /v1/payments/128744391  →  status: &quot;approved&quot;
+
+t=9.6s  MP  ──POST /api/webhooks/mercadopago──▶  { type:&quot;payment&quot;, data:{ id:&quot;128744391&quot; } }
+             (reintento / duplicado; MP no garantiza entrega única)
+             tu handler: GET /v1/payments/128744391  →  status: &quot;approved&quot;</code></pre>
+<p>Tres POST. Un <code>data.id</code>. Y solo el segundo es el que tiene que activar el acceso.</p>
+<h2>El código que parece bien y no lo está</h2>
+<pre data-lang="ts"><code>// ❌ Este es el bug. La idempotencia va primero.
+export async function POST(req: Request) {
+  const { data } = await req.json();
+
+  // &quot;Que no se procese dos veces.&quot;
+  const { error } = await supabase
+    .from(&quot;pagos_procesados&quot;)
+    .insert({ rail: &quot;mercadopago&quot;, payment_id: String(data.id) });
+
+  if (error?.code === &quot;23505&quot;) return new Response(&quot;ok&quot;, { status: 200 }); // ya procesado
+  if (error) return new Response(&quot;error&quot;, { status: 500 });
+
+  const pago = await getPayment(String(data.id));
+  if (pago?.status === &quot;approved&quot;) await activarAcceso(pago);
+
+  return new Response(&quot;ok&quot;, { status: 200 });
+}</code></pre>
+<p>Seguí la secuencia de arriba con ese código en la mano:</p>
+<ul><li><strong>t=0.4s</strong> — inserta la fila. Consulta la API: <code>pending</code>. No activa nada. La fila queda, mintiendo: dice "procesado" y no se procesó nada.</li><li><strong>t=3.1s</strong> — el <code>INSERT</code> choca con <code>23505</code>. Devuelve 200 y corta. <strong>Nunca consulta la API.</strong> Nunca ve el <code>approved</code>.</li><li><strong>t=9.6s</strong> — igual que la anterior.</li></ul>
+<p>Resultado: el usuario pagó, tu servidor respondió 200 tres veces, MercadoPago considera la entrega exitosa y no va a reintentar más nunca. El acceso no existe y no hay ningún error en tus logs, porque el <code>23505</code> lo estás tratando como camino feliz.</p>
+<p>Es un bug silencioso: no se detecta con monitoreo, se detecta con un mail enojado.</p>
+<h2>Por qué la intuición falla</h2>
+<p>La idempotencia protege contra <strong>entregar dos veces el mismo efecto</strong>. Pero acá el <code>data.id</code> no identifica un efecto: identifica un <strong>recurso</strong> que va cambiando. Deduplicar por el id del pago antes de saber en qué estado está es deduplicar en el momento equivocado.</p>
+<p>La regla que se generaliza a cualquier rail: <strong>la clave de idempotencia identifica la transición que te importa, no la notificación.</strong> Si tu clave es el id del pago, el gate va después de haber decidido que ese pago, en el estado en el que está hoy, merece la activación.</p>
+<p>Y la clave tiene que ser el id del <strong>pago</strong>, no el de la notificación. Si deduplicás por el id de la notificación —distinto en cada POST— nunca deduplicás nada: activás tres veces y contás tres ventas.</p>
+<h2>El orden correcto</h2>
+<pre data-lang=""><code>resolver  →  filtrar  →  validar  →  reclamar (idempotencia)  →  activar  →  confirmar</code></pre>
+<pre data-lang="ts"><code>export async function POST(req: Request) {
+  const { data, type } = await req.json();
+  if (type !== &quot;payment&quot; || !data?.id) return json(200, { ignored: true });
+
+  // 1. RESOLVER: el body del webhook no dice el estado. La API sí.
+  const pago = await getPayment(String(data.id));
+  if (!pago) return json(500, { retry: &quot;todavía no visible&quot; });
+
+  // 2. FILTRAR: refunded y charged_back tienen su propio camino (revocar).
+  if (pago.status === &quot;refunded&quot; || pago.status === &quot;charged_back&quot;) {
+    await revocarAcceso(pago);              // idempotente por su cuenta
+    return json(200, { revoked: true });
+  }
+  if (pago.status !== &quot;approved&quot;) return json(200, { skipped: pago.status });
+
+  // 3. VALIDAR el monto contra el precio oficial de esa moneda.
+  if (!montoCubrePrecio(pago)) return json(200, { rejected: &quot;monto insuficiente&quot; });
+
+  // 4. RECLAMAR: recién ahora la idempotencia tiene sentido.
+  const claim = await reclamarPago(&quot;mercadopago&quot;, String(pago.id), pago);
+  if (!claim.reclamado) return json(200, { already: true });
+
+  // 5. ACTIVAR y 6. CONFIRMAR.
+  try {
+    await activarAcceso(pago);
+    await claim.confirmar();
+    return json(200, { ok: true });
+  } catch (e) {
+    await marcarFallido(&quot;mercadopago&quot;, String(pago.id), String(e));
+    return json(500, { retry: &quot;activación fallida&quot; });
+  }
+}</code></pre>
+<p>Con este orden, la notificación de <code>pending</code> sale por el paso 2 sin tocar la tabla. La de <code>approved</code> llega con la tabla limpia, reclama y activa. La tercera reclama, no consigue, y devuelve 200.</p>
+<h2>La tabla, y el reclamo atómico</h2>
+<p>El reclamo tiene que ser atómico contra la base. Un <code>SELECT</code> seguido de un <code>INSERT</code> no sirve: las dos notificaciones de MercadoPago pueden llegar con milisegundos de diferencia a dos instancias serverless distintas, las dos leen "no existe", y las dos activan.</p>
+<pre data-lang="sql"><code>create table public.pagos_procesados (
+  rail            text        not null,      -- &#x27;mercadopago&#x27; | &#x27;stripe&#x27; | &#x27;lemonsqueezy&#x27;
+  payment_id      text        not null,      -- id del PAGO en el rail, no el de la notificación
+  status          text        not null,      -- &#x27;processing&#x27; | &#x27;processed&#x27; | &#x27;failed&#x27;
+  error           text,
+  user_id         uuid        references auth.users(id) on delete set null,
+  monto           numeric(14,2),
+  moneda          text,
+  creado_en       timestamptz not null default now(),
+  actualizado_en  timestamptz not null default now(),
+  primary key (rail, payment_id)
+);</code></pre>
+<p>El reclamo es un solo statement, y la base decide quién gana:</p>
+<pre data-lang="sql"><code>insert into public.pagos_procesados
+       (rail, payment_id, status, user_id, monto, moneda)
+values ($1, $2, &#x27;processing&#x27;, $3, $4, $5)
+on conflict (rail, payment_id) do update
+   set status = &#x27;processing&#x27;,
+       error = null,
+       actualizado_en = now()
+ where pagos_procesados.status = &#x27;failed&#x27;
+    or (pagos_procesados.status = &#x27;processing&#x27;
+        and pagos_procesados.actualizado_en &lt; now() - interval &#x27;5 minutes&#x27;)
+returning payment_id;</code></pre>
+<p>Tres comportamientos en una sola query:</p>
+<ul><li><strong>Fila nueva</strong> → devuelve el <code>payment_id</code>. Reclamado, seguí.</li><li><strong>Ya está <code>processed</code></strong> → el <code>where</code> no matchea, no devuelve nada. Ya se hizo, 200.</li><li><strong>Está <code>failed</code>, o <code>processing</code> hace más de 5 minutos</strong> → se re-reclama. Ese segundo caso es un <em>lease</em>: cubre la instancia que se murió entre reclamar y confirmar y dejó la fila trabada para siempre.</li></ul>
+<p>Si no devolvió fila, no reclamaste. Simple de leer en el handler y sin transacciones a mano.</p>
+<h2>No borres la fila cuando falla: marcala</h2>
+<p>La tentación, cuando la activación explota, es borrar la fila de deduplicación para que el reintento pueda volver a entrar. Funciona, y te deja ciego: no te queda ningún rastro de que hubo un fallo, ni cuál, ni cuántas veces.</p>
+<pre data-lang="ts"><code>export async function marcarFallido(rail: string, paymentId: string, error: string) {
+  await supabase
+    .from(&quot;pagos_procesados&quot;)
+    .update({ status: &quot;failed&quot;, error: error.slice(0, 2000), actualizado_en: new Date() })
+    .eq(&quot;rail&quot;, rail)
+    .eq(&quot;payment_id&quot;, paymentId);
+}</code></pre>
+<p>La fila queda con <code>status = 'failed'</code> y el mensaje. El reintento de MercadoPago vuelve, el <code>on conflict … where status = 'failed'</code> la re-reclama, activa, y la sobreescribe a <code>'processed'</code>. La idempotencia nunca se rompió y el historial queda.</p>
+<p>Con eso, tu tablero de soporte es una query:</p>
+<pre data-lang="sql"><code>select payment_id, moneda, monto, error, actualizado_en
+  from public.pagos_procesados
+ where status &lt;&gt; &#x27;processed&#x27;
+   and creado_en &gt; now() - interval &#x27;7 days&#x27;
+ order by creado_en desc;</code></pre>
+<p>Cualquier fila ahí es plata cobrada sin entregar. Es la única alerta de pagos que hace falta tener.</p>
+<h2>El test que hay que escribir</h2>
+<p>No testees "el webhook funciona". Testeá la secuencia:</p>
+<pre data-lang="ts"><code>it(&quot;activa una sola vez ante pending → approved → approved&quot;, async () =&gt; {
+  mockPayment({ id: &quot;1&quot;, status: &quot;pending&quot;,  transaction_amount: 39900, currency_id: &quot;ARS&quot; });
+  expect((await POST(ipn(&quot;1&quot;))).status).toBe(200);
+  expect(activarAcceso).not.toHaveBeenCalled();      // pending no activa
+
+  mockPayment({ id: &quot;1&quot;, status: &quot;approved&quot;, transaction_amount: 39900, currency_id: &quot;ARS&quot; });
+  expect((await POST(ipn(&quot;1&quot;))).status).toBe(200);
+  expect(activarAcceso).toHaveBeenCalledTimes(1);    // ← el que atrapa el bug
+
+  expect((await POST(ipn(&quot;1&quot;))).status).toBe(200);
+  expect(activarAcceso).toHaveBeenCalledTimes(1);    // el duplicado no suma
+});</code></pre>
+<p>Ese test falla con el código del principio de la nota.</p>
+<hr>
+<p>El handler completo, la tabla, el reclamo atómico y los tests de secuencia vienen listos en <strong>Pagos LATAM Kit</strong>: MercadoPago, Stripe y Lemon Squeezy sobre Next.js y Supabase.</p>
+<p>Si te sirve, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
+  <div class="cierre">
+    <h3>Pagos LATAM Kit</h3>
+    <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
+    con 108 tests y las 7 lecciones de producción adentro.</p>
+    <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
+  </div>
+  <a class="volver" href="../index.html">← Volver</a>
+</article>
+</body>
+</html>

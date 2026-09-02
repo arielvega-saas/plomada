@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Integrar MercadoPago en Next.js (App Router): la guía que me hubiera ahorrado tres días — Plomada</title>
+<meta name="description" content="Crear la preferencia con fetch a la API REST, recibir el webhook y validar el monto. Con el orden correcto de idempotencia y qué status HTTP devolver.">
+<meta name="keywords" content="mercadopago next.js, checkout pro app router, webhook mercadopago, integrar mercadopago, pagos latam next.js">
+<link rel="canonical" href="https://arielvega-saas.github.io/plomada/articulos/integrar-mercadopago-en-nextjs.html">
+<meta property="og:title" content="Integrar MercadoPago en Next.js (App Router): la guía que me hubiera ahorrado tres días">
+<meta property="og:description" content="Crear la preferencia con fetch a la API REST, recibir el webhook y validar el monto. Con el orden correcto de idempotencia y qué status HTTP devolver.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+</style>
+<style>
+article{max-width:720px;margin:0 auto;padding:0 22px}
+article h1{font-size:clamp(27px,5vw,40px);margin:26px 0 14px}
+article h2{margin:38px 0 10px;font-size:24px}
+article h3{margin:28px 0 8px;font-size:18px;font-weight:700}
+article p{margin:14px 0}
+article ul,article ol{margin:14px 0;padding-left:22px}
+article li{margin:7px 0}
+article li::marker{color:var(--acento)}
+article code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:.88em;color:var(--acento2)}
+article pre code{background:none;padding:0;color:var(--texto)}
+blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18px 0;
+  padding:12px 18px;border-radius:0 8px 8px 0;color:var(--tenue)}
+.volver{display:inline-block;margin:26px 0 0;color:var(--tenue);text-decoration:none;font-size:14.5px}
+.volver:hover{color:var(--acento2)}
+.meta-art{color:var(--tenue);font-size:14px;margin:0 0 8px}
+.cierre{margin-top:44px;padding:22px;background:var(--panel);border:1px solid var(--linea);
+  border-radius:12px}
+.cierre h3{margin:0 0 8px}
+</style>
+</head>
+<body>
+<article>
+  <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <p class="meta-art">2026-09-01</p>
+  <p>Un usuario compró. En el panel de MercadoPago el pago figura <code>approved</code>. En mi base no hay nada, y el tipo me escribe por mail preguntando dónde está lo que pagó.</p>
+<p>Ahí termina casi toda primera integración de MercadoPago: el checkout anda, el dinero entra, la activación no ocurre. No es un bug de una línea: son tres decisiones de diseño que la documentación oficial no pone juntas en ninguna página. Esta guía cubre las tres.</p>
+<h2>Por qué no vas a usar el SDK oficial</h2>
+<p>El paquete <code>mercadopago</code> de npm es CommonJS y toca APIs de Node que el Edge runtime no tiene. Si tu route handler corre en Edge —o si el módulo termina importado desde el middleware, cosa fácil de que pase sin querer— el build falla, o rompe en runtime con un error que no menciona a MercadoPago por ningún lado.</p>
+<p>Podés fijar <code>export const runtime = "nodejs"</code> y sobrevivir. Pero mirá lo que necesitás del SDK: dos endpoints REST. Con <code>fetch</code> corre igual en Node, Edge y Workers, y no heredás los breaking changes entre la v1 y la v2.</p>
+<pre data-lang="ts"><code>// src/lib/mp/client.ts
+export type MpPayment = {
+  id: number;
+  status: &quot;pending&quot; | &quot;approved&quot; | &quot;rejected&quot; | &quot;cancelled&quot; |
+          &quot;refunded&quot; | &quot;charged_back&quot; | (string &amp; {});
+  external_reference: string | null;
+  transaction_amount: number;
+  currency_id: string;
+};
+
+export async function getPayment(id: string): Promise&lt;MpPayment | null&gt; {
+  const res = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+    headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+    cache: &quot;no-store&quot;,
+  });
+  if (res.status === 404) return null;   // todavía no visible: es transitorio
+  if (!res.ok) throw new Error(`MP ${res.status}: ${await res.text()}`);
+  return (await res.json()) as MpPayment;
+}</code></pre>
+<p>Fijate el <code>(string &amp; {})</code> al final del union. MercadoPago agrega estados nuevos sin avisar, y un enum cerrado te rompe el parseo entero cuando aparece uno que no conocías: ese día perdés todas las notificaciones, no solo la rara.</p>
+<h2>Paso 1: crear la preferencia</h2>
+<p>La preferencia describe qué se vende y a dónde vuelve el comprador. Se crea en tu servidor: el <code>access_token</code> no puede salir del backend.</p>
+<pre data-lang="ts"><code>// src/lib/mp/preference.ts
+import { randomUUID } from &quot;node:crypto&quot;;
+
+export async function createPreference(args: {
+  userId: string; title: string;
+  unitPrice: number; currencyId: &quot;ARS&quot; | &quot;USD&quot; | &quot;BRL&quot;;
+}) {
+  const externalReference = `${args.userId}:${randomUUID()}`;
+  const base = process.env.NEXT_PUBLIC_SITE_URL!; // https, absoluto, sin barra final
+
+  const res = await fetch(&quot;https://api.mercadopago.com/checkout/preferences&quot;, {
+    method: &quot;POST&quot;,
+    cache: &quot;no-store&quot;,
+    headers: {
+      Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      &quot;Content-Type&quot;: &quot;application/json&quot;,
+      &quot;X-Idempotency-Key&quot;: externalReference,
+    },
+    body: JSON.stringify({
+      items: [{ title: args.title, quantity: 1,
+                unit_price: args.unitPrice, currency_id: args.currencyId }],
+      external_reference: externalReference,
+      notification_url: `${base}/api/webhooks/mercadopago`,
+      back_urls: {
+        success: `${base}/gracias?mp=success`,
+        pending: `${base}/gracias?mp=pending`,
+        failure: `${base}/checkout?mp=failure`,
+      },
+      auto_return: &quot;approved&quot;,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`No pude crear la preferencia: ${await res.text()}`);
+  const pref = (await res.json()) as { id: string; init_point: string };
+  return { checkoutUrl: pref.init_point, externalReference };
+}</code></pre>
+<p>Tres detalles que cuestan una tarde cada uno:</p>
+<ul><li><strong><code>auto_return: "approved"</code> exige que <code>back_urls.success</code> sea absoluta y https.</strong> Con <code>http://localhost:3000</code> devuelve <code>auto_return invalid. back_url.success must be defined</code>, un mensaje que apunta al campo equivocado.</li><li><strong><code>notification_url</code> también tiene que ser pública.</strong> <code>localhost</code> no existe para los servidores de MercadoPago. <code>cloudflared tunnel --url http://localhost:3000</code> te da una URL gratis y sin cuenta.</li><li><strong>El <code>external_reference</code> es tu única forma de saber quién compró.</strong> No confíes en que el email del pagador coincida con el de tu cuenta: mucha gente paga con el Mercado Pago de la pareja.</li></ul>
+<p>El front solo redirige a <code>checkoutUrl</code>: no hace falta el SDK de JavaScript ni el Wallet Brick para arrancar.</p>
+<h2>Paso 2: el webhook, y el orden que importa</h2>
+<p>Acá está el bug que hace que el usuario pague y no reciba nada.</p>
+<p>MercadoPago manda <strong>varias</strong> notificaciones por el <strong>mismo</strong> pago mientras el pago cambia de estado: una en <code>pending</code>, otra en <code>approved</code>, a veces una tercera de reintento. Todas con el mismo <code>data.id</code>.</p>
+<p>La intuición dice: primero deduplico, después trabajo. Eso es exactamente lo que rompe. La de <code>pending</code> llega primero e inserta la fila de deduplicación; cuando llega la de <code>approved</code> —la única que importa— el <code>INSERT</code> choca contra el unique y devuelve <code>23505</code>. El código la descarta como "duplicada" y el acceso nunca se activa. La secuencia medida y el reclamo atómico en SQL, en <a href="webhook-mercadopago-idempotencia.html">esta nota</a>.</p>
+<p>El orden correcto es al revés: <strong>resolvé el pago primero, deduplicá después</strong>.</p>
+<pre data-lang="ts"><code>// src/app/api/webhooks/mercadopago/route.ts
+export const runtime = &quot;nodejs&quot;;
+export const dynamic = &quot;force-dynamic&quot;;
+
+export async function POST(req: Request) {
+  const url = new URL(req.url);
+  const body = await req.json().catch(() =&gt; ({} as any));
+  const topic = body?.type ?? url.searchParams.get(&quot;type&quot;) ?? url.searchParams.get(&quot;topic&quot;);
+  const paymentId = body?.data?.id ?? url.searchParams.get(&quot;data.id&quot;);
+
+  // merchant_order y otros tópicos: no son error, no los usamos.
+  if (topic !== &quot;payment&quot; || !paymentId) return json(200, { ignored: topic ?? null });
+
+  // 1. RESOLVER: el estado real sale de la API, no del body.
+  const pago = await getPayment(String(paymentId));
+  if (!pago) return json(500, { retry: &quot;todavía no visible en la API&quot; });
+
+  // 2. FILTRAR: solo approved sigue.
+  if (pago.status !== &quot;approved&quot;) return json(200, { skipped: pago.status });
+
+  // 3. VALIDAR EL MONTO, antes de tocar nada.
+  if (!montoCubrePrecio(pago)) return json(200, { rejected: &quot;monto insuficiente&quot; });
+
+  // 4. RECIÉN AHORA: idempotencia.
+  const claim = await reclamarPago(&quot;mercadopago&quot;, String(pago.id), pago);
+  if (!claim.reclamado) return json(200, { already: true });
+
+  try {
+    await activarAcceso(pago);
+    await claim.confirmar();
+    return json(200, { ok: true });
+  } catch (e) {
+    await marcarFallido(&quot;mercadopago&quot;, String(pago.id), String(e));
+    return json(500, { retry: &quot;no pude activar el acceso&quot; });
+  }
+}</code></pre>
+<h2>Paso 3: validar el monto, siempre</h2>
+<p>En la cuenta con la que probé, las notificaciones llegaban <strong>sin</strong> header <code>x-signature</code>: la firma HMAC no está disponible en todos los planes. Si la tuya la manda, validala. Pero no puede ser tu único control, porque el día que no venga te quedás sin ninguno.</p>
+<p>El control que siempre podés hacer es el aritmético. Un <code>external_reference</code> válido solo prueba que alguien conoce ese string. Si verificás nada más que eso, cualquiera abre el checkout, paga ARS 1 y se activa el producto.</p>
+<pre data-lang="ts"><code>// src/lib/mp/precios.ts — una sola fuente de verdad, del lado del servidor
+const PRECIO: Record&lt;string, number&gt; = { ARS: 39900, USD: 39, BRL: 199 };
+
+export function montoCubrePrecio(p: MpPayment): boolean {
+  const oficial = PRECIO[p.currency_id];
+  if (oficial === undefined) return false;       // moneda que no vendemos
+  return p.transaction_amount + 0.01 &gt;= oficial; // tolerancia de redondeo
+}</code></pre>
+<p>El monto sale de la API, no del body. Esa diferencia es toda la seguridad del esquema: el body lo escribe cualquiera que conozca tu URL, la respuesta de <code>GET /v1/payments/:id</code> no.</p>
+<h2>Paso 4: qué status HTTP devolver</h2>
+<p>MercadoPago reintenta cuando tu endpoint responde algo que no es 2xx. Es una funcionalidad excelente y una trampa a la vez: un 500 mal puesto te genera reintentos infinitos sobre un caso que nunca va a mejorar.</p>
+<p>La regla: <strong>500 significa "volvé a intentar, esto puede cambiar"</strong>. Nada más.</p>
+<div class='tabla-wrap'><table><tr><th>Situación</th><th>Status</th><th>Por qué</th></tr><tr><td>Pago todavía no visible en la API (404)</td><td><strong>500</strong></td><td>Es una carrera; en 10 segundos existe</td></tr><tr><td>Falló activar (DB caída, timeout, excepción)</td><td><strong>500</strong></td><td>Transitorio, el reintento lo resuelve</td></tr><tr><td>Ya procesado (idempotencia)</td><td><strong>200</strong></td><td>Reintentar no cambia nada</td></tr><tr><td><code>rejected</code>, <code>cancelled</code> o monto insuficiente</td><td><strong>200</strong></td><td>Terminal, no va a mejorar</td></tr><tr><td>Tópico que no manejamos, o body sin <code>data.id</code></td><td><strong>200</strong></td><td>No hay nada que reintentar</td></tr></table></div>
+<p>Y respondé rápido: si tu handler tarda, MercadoPago corta la conexión y lo cuenta como fallo, aunque hayas activado todo bien. Si la activación manda mails, encolá eso y respondé.</p>
+<h2>Cómo probarlo sin adivinar</h2>
+<p>Levantá el túnel, poné esa URL en <code>notification_url</code> y pagá de verdad, con el monto mínimo que acepte tu cuenta y desde otra cuenta: el sandbox no reproduce la secuencia de notificaciones múltiples, que es justo el caso que rompe. Loggeá cada notificación con <code>data.id</code>, el <code>status</code> que devolvió la API y el status HTTP con el que respondiste.</p>
+<p>Después reenviá a mano la misma notificación tres veces: tienen que salir tres 200 y <strong>un solo</strong> acceso activado. Ese es el test de aceptación de toda la integración.</p>
+<hr>
+<p>Todo esto —preferencia, webhook, validación de monto, idempotencia y migraciones— viene armado y probado en <strong>Pagos LATAM Kit</strong>, un boilerplate de Next.js App Router con MercadoPago, Stripe y Lemon Squeezy sobre Supabase.</p>
+<p>Si querés que te avise cuando salga, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
+  <div class="cierre">
+    <h3>Pagos LATAM Kit</h3>
+    <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
+    con 108 tests y las 7 lecciones de producción adentro.</p>
+    <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
+  </div>
+  <a class="volver" href="../index.html">← Volver</a>
+</article>
+</body>
+</html>

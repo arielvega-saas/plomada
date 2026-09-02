@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cómo cobrar en Argentina y LATAM desde tu app: MercadoPago, Stripe o Lemon Squeezy — Plomada</title>
+<meta name="description" content="Qué monedas emite cada rail, cuál deposita en un banco argentino y cuándo conviene cada uno. Con el límite real de la cuenta MLA y el retorno del checkout.">
+<meta name="keywords" content="cobrar en argentina, mercadopago vs stripe, lemon squeezy latam, cobrar en dolares desde argentina, pagos saas latam">
+<link rel="canonical" href="https://arielvega-saas.github.io/plomada/articulos/cobrar-en-argentina-y-latam-desde-una-app.html">
+<meta property="og:title" content="Cómo cobrar en Argentina y LATAM desde tu app: MercadoPago, Stripe o Lemon Squeezy">
+<meta property="og:description" content="Qué monedas emite cada rail, cuál deposita en un banco argentino y cuándo conviene cada uno. Con el límite real de la cuenta MLA y el retorno del checkout.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+</style>
+<style>
+article{max-width:720px;margin:0 auto;padding:0 22px}
+article h1{font-size:clamp(27px,5vw,40px);margin:26px 0 14px}
+article h2{margin:38px 0 10px;font-size:24px}
+article h3{margin:28px 0 8px;font-size:18px;font-weight:700}
+article p{margin:14px 0}
+article ul,article ol{margin:14px 0;padding-left:22px}
+article li{margin:7px 0}
+article li::marker{color:var(--acento)}
+article code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:.88em;color:var(--acento2)}
+article pre code{background:none;padding:0;color:var(--texto)}
+blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18px 0;
+  padding:12px 18px;border-radius:0 8px 8px 0;color:var(--tenue)}
+.volver{display:inline-block;margin:26px 0 0;color:var(--tenue);text-decoration:none;font-size:14.5px}
+.volver:hover{color:var(--acento2)}
+.meta-art{color:var(--tenue);font-size:14px;margin:0 0 8px}
+.cierre{margin-top:44px;padding:22px;background:var(--panel);border:1px solid var(--linea);
+  border-radius:12px}
+.cierre h3{margin:0 0 8px}
+</style>
+</head>
+<body>
+<article>
+  <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <p class="meta-art">2026-09-01</p>
+  <p>La primera pregunta cuando armás un producto digital desde Argentina no es de código: es "¿cómo entra la plata?". Y la respuesta cambia según de dónde venga el que compra, no según lo que a vos te resulte más cómodo integrar.</p>
+<p>Después de cablear los tres rails en la misma app y ver cuál cobraba qué, esto es lo que quedó claro.</p>
+<h2>Lo que hace cada uno, sin marketing</h2>
+<p><strong>MercadoPago</strong> es un procesador. Vos sos el vendedor frente al comprador y frente a AFIP: emitís vos, facturás vos, y el dinero cae en tu cuenta de Mercado Pago, desde donde lo transferís a tu CBU. Acepta los medios de pago que la gente de la región efectivamente usa: dinero en cuenta, tarjetas locales, débito, y cuotas. Ese último punto no es un detalle: en Argentina, un producto de precio medio con cuotas convierte bastante mejor que el mismo producto en un pago.</p>
+<p><strong>Stripe</strong> es el mejor procesador del mundo por API y documentación, y no opera en Argentina. Para usarlo necesitás una entidad en un país soportado —típicamente una LLC en Estados Unidos, con su cuenta bancaria y sus obligaciones fiscales— y después traer esa plata. Es una decisión contable antes que técnica.</p>
+<p><strong>Lemon Squeezy</strong> es <em>merchant of record</em>: legalmente el que le vende al comprador es Lemon Squeezy, no vos. Ellos calculan, cobran y declaran el IVA europeo, el sales tax de Estados Unidos y el resto del zoológico impositivo. Vos vendés un producto a Lemon Squeezy y ellos te liquidan. Cobra una comisión bastante más alta que Stripe, y esa diferencia es literalmente el precio de no tener que registrarte en el IVA de la Unión Europea.</p>
+<div class='tabla-wrap'><table><tr><th></th><th>MercadoPago</th><th>Stripe</th><th>Lemon Squeezy</th></tr><tr><td>Qué es</td><td>Procesador</td><td>Procesador</td><td>Merchant of Record</td></tr><tr><td>Cuenta desde Argentina</td><td>Sí, directa</td><td>No (necesitás entidad extranjera)</td><td>Sí, sin sociedad</td></tr><tr><td>Deposita a CBU argentino</td><td>Sí</td><td>No</td><td>No directo (payout por PayPal/Wise según país)</td></tr><tr><td>Cuotas locales</td><td>Sí</td><td>No en AR</td><td>No</td></tr><tr><td>Se ocupa del IVA/VAT</td><td>No</td><td>No</td><td>Sí</td></tr><tr><td>Comisión</td><td>Media, escalonada por plazo de acreditación</td><td>Baja</td><td>Alta</td></tr><tr><td>Quién factura al comprador</td><td>Vos</td><td>Vos</td><td>Ellos</td></tr></table></div>
+<p>Las comisiones cambian seguido en los tres, y en MercadoPago además dependen del plazo de acreditación. No las memorices: mirá tu panel el día que definas el precio.</p>
+<h2>El límite que casi nadie documenta: MLA solo emite tres monedas</h2>
+<p>Una cuenta de MercadoPago argentina —<code>site_id</code> <strong>MLA</strong>— puede crear preferencias en <strong>ARS, USD y BRL</strong>. Nada más. Si le mandás <code>currency_id: "MXN"</code> o <code>"EUR"</code>, la API te devuelve un 400 con <code>currency_id invalid</code> y el comprador ve una pantalla rota.</p>
+<p>Lo descubrí de la peor manera: un comprador mexicano llegó al checkout, la app le armó la preferencia en MXN porque su país decía México, y se comió un error 400. Desde afuera se veía como "la página no anda".</p>
+<p>La solución no es un mensaje de error más lindo. Es un fallback explícito a USD: el comprador paga en dólares y su tarjeta hace la conversión, que es exactamente lo que pasa cuando compra en cualquier sitio internacional.</p>
+<pre data-lang="ts"><code>// src/lib/mp/monedas.ts
+// Verificado contra la API con una cuenta MLA (Argentina).
+const MONEDAS_MLA = new Set([&quot;ARS&quot;, &quot;USD&quot;, &quot;BRL&quot;]);
+
+/** Devuelve la moneda con la que SÍ se puede crear la preferencia. */
+export function monedaParaMercadoPago(preferida: string): &quot;ARS&quot; | &quot;USD&quot; | &quot;BRL&quot; {
+  const m = preferida.toUpperCase();
+  return (MONEDAS_MLA.has(m) ? m : &quot;USD&quot;) as &quot;ARS&quot; | &quot;USD&quot; | &quot;BRL&quot;;
+}
+
+const PRECIO_POR_MONEDA = { ARS: 39900, USD: 39, BRL: 199 } as const;
+
+export function precioPara(paisDelComprador: string) {
+  const preferida = paisDelComprador === &quot;AR&quot; ? &quot;ARS&quot;
+                  : paisDelComprador === &quot;BR&quot; ? &quot;BRL&quot;
+                  : &quot;USD&quot;;
+  const moneda = monedaParaMercadoPago(preferida);
+  return { moneda, monto: PRECIO_POR_MONEDA[moneda] };
+}</code></pre>
+<p>Ese mismo mapa <code>PRECIO_POR_MONEDA</code> es el que después usa el webhook para validar que el monto pagado cubra el precio oficial. Una sola fuente de verdad, del lado del servidor, para las dos cosas.</p>
+<p>Si tu público es mayormente mexicano o colombiano y querés cobrar en moneda local con medios locales, MercadoPago igual es una opción: hay que abrir una cuenta del país correspondiente (MLM para México, MCO para Colombia). Son cuentas separadas, con credenciales separadas, y eso implica presencia fiscal allá. Para la mayoría de los productos digitales chicos, cobrar en USD y dejar que la tarjeta convierta es la decisión correcta.</p>
+<h2>El retorno del checkout llega distinto en cada rail</h2>
+<p>Cuando el comprador vuelve a tu sitio, cada rail te avisa con su propio parámetro:</p>
+<ul><li>MercadoPago: <code>?mp=success</code> (más los que agrega él: <code>payment_id</code>, <code>status</code>, <code>external_reference</code>, <code>merchant_order_id</code>)</li><li>Stripe: <code>?checkout=success</code></li><li>Lemon Squeezy: <code>?ls=success</code></li></ul>
+<p>Es un detalle chico con una consecuencia grande: si tu evento de analytics escucha solamente <code>checkout=success</code> porque arrancaste con Stripe, todas las ventas por MercadoPago desaparecen de tus métricas de conversión. No aparecen mal: no aparecen. Y el banner de "estamos procesando tu pago" tampoco se muestra, así que el usuario aterriza en una pantalla que no le dice nada.</p>
+<p>Un solo lector para los tres:</p>
+<pre data-lang="ts"><code>// src/lib/pagos/retorno.ts
+const RAILS = [
+  { param: &quot;mp&quot;,       rail: &quot;mercadopago&quot;  },
+  { param: &quot;checkout&quot;, rail: &quot;stripe&quot;       },
+  { param: &quot;ls&quot;,       rail: &quot;lemonsqueezy&quot; },
+] as const;
+
+export type Retorno = {
+  rail: (typeof RAILS)[number][&quot;rail&quot;];
+  estado: &quot;success&quot; | &quot;pending&quot; | &quot;failure&quot; | &quot;cancel&quot;;
+};
+
+export function leerRetorno(sp: URLSearchParams): Retorno | null {
+  for (const { param, rail } of RAILS) {
+    const v = sp.get(param);
+    if (v) return { rail, estado: v as Retorno[&quot;estado&quot;] };
+  }
+  return null;
+}</code></pre>
+<pre data-lang="tsx"><code>// src/app/gracias/page.tsx
+export default async function Gracias({ searchParams }: { searchParams: Promise&lt;Record&lt;string, string&gt;&gt; }) {
+  const retorno = leerRetorno(new URLSearchParams(await searchParams));
+  if (!retorno) return &lt;Generico /&gt;;
+
+  // Una sola llamada de analytics, con el rail como dimensión.
+  return (
+    &lt;&gt;
+      &lt;TrackCheckout rail={retorno.rail} estado={retorno.estado} /&gt;
+      {retorno.estado === &quot;success&quot; &amp;&amp; &lt;Confirmado /&gt;}
+      {retorno.estado === &quot;pending&quot; &amp;&amp; &lt;Procesando /&gt;}   {/* efectivo, transferencia */}
+      {(retorno.estado === &quot;failure&quot; || retorno.estado === &quot;cancel&quot;) &amp;&amp; &lt;Reintentar /&gt;}
+    &lt;/&gt;
+  );
+}</code></pre>
+<p>El estado <code>pending</code> merece su propia pantalla y casi nadie la hace. En Argentina una parte real de los pagos se hacen en efectivo en un Rapipago o por transferencia, y se acreditan horas después. Si a esa gente le mostrás "pago fallido", la perdiste; si le mostrás "recibimos tu pago, te avisamos por mail cuando se acredite", la conservás.</p>
+<p><strong>Y lo más importante de toda esta sección: la URL de retorno no es prueba de pago.</strong> Cualquiera puede escribir <code>/gracias?mp=success</code> en la barra de direcciones. Sirve para decidir qué pantalla mostrar y qué evento disparar, nunca para otorgar acceso. El acceso lo da el webhook, del lado del servidor, después de re-consultar el pago contra la API. Si tu página de gracias hace un <code>INSERT</code>, tenés un producto gratis.</p>
+<h2>Cuál elegir</h2>
+<p><strong>Vendés sobre todo en Argentina.</strong> MercadoPago, y ni lo pienses. Es el único que acepta dinero en cuenta y cuotas, y el único que deposita en tu CBU sin intermediarios. El costo es que la parte fiscal la manejás vos.</p>
+<p><strong>Vendés al mundo, en dólares, y tenés o vas a tener una LLC.</strong> Stripe. Mejor API, mejores herramientas de facturación y suscripciones, comisión más baja. Es más trabajo de setup societario y contable, no de código.</p>
+<p><strong>Vendés al mundo y no querés saber nada con impuestos ni sociedades.</strong> Lemon Squeezy. Pagás más comisión y te ahorrás el problema entero. Para un producto de un solo desarrollador es, casi siempre, la mejor relación esfuerzo/resultado para el mercado internacional.</p>
+<p><strong>Vendés en Argentina y afuera.</strong> Los dos: MercadoPago para el mercado local y uno de los otros para el resto. Es la combinación que más vi funcionar, y es también la que más código tonto genera si no la unificás. Lo que hay que abstraer es lo mínimo: una función <code>crearCheckout(rail, producto, usuario)</code>, un webhook por rail, y <strong>una sola</strong> función <code>activarAcceso(compra)</code> que los tres llaman. Todo lo demás es específico de cada rail y tratar de unificarlo te va a doler más que duplicarlo.</p>
+<hr>
+<p>Los tres rails con esa forma —checkout unificado, un webhook por rail, una sola activación idempotente sobre Supabase— vienen armados en <strong>Pagos LATAM Kit</strong> para Next.js.</p>
+<p>Si querés que te avise cuando salga, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
+  <div class="cierre">
+    <h3>Pagos LATAM Kit</h3>
+    <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
+    con 108 tests y las 7 lecciones de producción adentro.</p>
+    <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
+  </div>
+  <a class="volver" href="../index.html">← Volver</a>
+</article>
+</body>
+</html>
