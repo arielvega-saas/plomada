@@ -169,7 +169,7 @@ if (minimo === undefined || !(pagado &gt;= minimo)) {
 }</code></pre>
 <p>Dos detalles de esas dos líneas:</p>
 <ul><li><code>&gt;=</code> y no <code>==</code>: las cuotas con interés y las conversiones de moneda pueden dejar unos centavos a tu favor, y un <code>==</code> estricto rechazaría esa venta.</li><li>La forma negada <code>!(pagado &gt;= minimo)</code> y no <code>pagado &lt; minimo</code>: si <code>pagado</code> es <code>NaN</code> —porque el campo vino <code>null</code> o como string—, <code>&lt;</code> devuelve <code>false</code> y <strong>el pago pasa</strong>. La forma negada devuelve <code>true</code> y lo rechaza. Es un carácter de diferencia entre fallar cerrado y fallar abierto.</li></ul>
-<p>Y el monto tiene que salir de la fuente correcta. En los rails que firman el webhook, el body verificado sirve —de eso trata <a href="verificar-firma-webhook-pago-nextjs.html">la nota sobre verificación de firma</a>—. En MercadoPago, que en la cuenta con la que probamos no firmaba, el monto hay que ir a buscarlo a la API: el body lo escribe cualquiera. Está en <a href="integrar-mercadopago-en-nextjs.html">la guía de integración</a>.</p>
+<p>Y el monto tiene que salir de la fuente correcta. En los rails que firman el webhook, el body verificado sirve —de eso trata <a href="verificar-firma-webhook-pago-nextjs.html">la nota sobre verificación de firma</a>—. En MercadoPago el monto hay que ir a buscarlo a la API igual, porque MP firma un manifest con el id de la notificación y no el cuerpo: la firma prueba el origen, no el importe. Está en <a href="integrar-mercadopago-en-nextjs.html">la guía de integración</a>.</p>
 <h2>El segundo bug, el que no rompe nada</h2>
 <p>Resuelta la validación, queda uno más silencioso todavía: la escala del libro de revenue.</p>
 <p>Si guardás cada transacción "en la unidad mínima del proveedor", CLP 15.000 entra como <code>15000</code> y USD 19 como <code>1900</code>. Los dos números son correctos y son incomparables. El día que sumes revenue total vas a sumar dos escalas distintas, y ningún test va a fallar, porque no hay nada que falle: es una suma de enteros que da un entero.</p>
@@ -206,12 +206,12 @@ it(&quot;el libro guarda siempre centésimos&quot;, () =&gt; {
 <p>Sin desplegar nada:</p>
 <ol><li>Buscá <code>/ 100</code> y <code>* 100</code> en tu código. Cada aparición que no esté dentro de una función que reciba la moneda es un candidato.</li><li>Andá a la lista de monedas de tu catálogo. Si hay CLP, PYG, JPY o KRW, el bug ya está ahí esperando el primer comprador de ese país.</li><li>Comprobá tu comparación de monto: si dice <code>pagado &lt; minimo</code>, cambiala a <code>!(pagado &gt;= minimo)</code>.</li><li>Mirá una fila real de tu tabla de transacciones en cada moneda y preguntate si esas dos filas se pueden sumar.</li></ol>
 <hr>
-<p>Las conversiones de escala, la validación de monto de los tres rails y el libro de transacciones con una sola escala vienen armados y probados en <strong>Pagos LATAM Kit</strong>, un boilerplate de pagos para Next.js App Router y Supabase con 110 tests, incluidos los tres de arriba.</p>
+<p>Las conversiones de escala, la validación de monto de los tres rails y el libro de transacciones con una sola escala vienen armados y probados en <strong>Pagos LATAM Kit</strong>, un boilerplate de pagos para Next.js App Router y Supabase con 124 tests, incluidos los tres de arriba.</p>
 <p>Si querés que te avise cuando salga, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
   <div class="cierre">
     <h3>Pagos LATAM Kit</h3>
     <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
-    con 110 tests y las 7 lecciones de producción adentro.</p>
+    con 124 tests y las 7 lecciones de producción adentro.</p>
     <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
   </div>
   <a class="volver" href="../index.html">← Volver</a>
