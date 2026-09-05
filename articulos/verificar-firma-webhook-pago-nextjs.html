@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verificar la firma de un webhook de pago en Next.js: el body crudo y los tres errores que se pagan caro — Plomada</title>
+<meta name="description" content="Por qué req.json() rompe la firma para siempre, qué secreto va en cada endpoint y por qué comparar con === es un agujero. Stripe y Lemon Squeezy, con el test que de verdad prueba la verificación.">
+<meta name="keywords" content="verificar firma webhook, stripe signature verification failed, webhook hmac lemon squeezy, raw body next.js app router, seguridad webhook pagos">
+<link rel="canonical" href="https://arielvega-saas.github.io/plomada/articulos/verificar-firma-webhook-pago-nextjs.html">
+<meta property="og:title" content="Verificar la firma de un webhook de pago en Next.js: el body crudo y los tres errores que se pagan caro">
+<meta property="og:description" content="Por qué req.json() rompe la firma para siempre, qué secreto va en cada endpoint y por qué comparar con === es un agujero. Stripe y Lemon Squeezy, con el test que de verdad prueba la verificación.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+</style>
+<style>
+article{max-width:720px;margin:0 auto;padding:0 22px}
+article h1{font-size:clamp(27px,5vw,40px);margin:26px 0 14px}
+article h2{margin:38px 0 10px;font-size:24px}
+article h3{margin:28px 0 8px;font-size:18px;font-weight:700}
+article p{margin:14px 0}
+article ul,article ol{margin:14px 0;padding-left:22px}
+article li{margin:7px 0}
+article li::marker{color:var(--acento)}
+article code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:.88em;color:var(--acento2)}
+article pre code{background:none;padding:0;color:var(--texto)}
+blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18px 0;
+  padding:12px 18px;border-radius:0 8px 8px 0;color:var(--tenue)}
+.volver{display:inline-block;margin:26px 0 0;color:var(--tenue);text-decoration:none;font-size:14.5px}
+.volver:hover{color:var(--acento2)}
+.meta-art{color:var(--tenue);font-size:14px;margin:0 0 8px}
+.cierre{margin-top:44px;padding:22px;background:var(--panel);border:1px solid var(--linea);
+  border-radius:12px}
+.cierre h3{margin:0 0 8px}
+</style>
+</head>
+<body>
+<article>
+  <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <h1>Verificar la firma de un webhook de pago en Next.js: el body crudo y los tres errores que se pagan caro</h1>
+  <p class="meta-art">2026-09-05</p>
+  <p>Hay dos formas de equivocarse verificando la firma de un webhook de pago, y solo una hace ruido.</p>
+<p>La ruidosa es este mensaje, que vas a ver la primera tarde:</p>
+<pre data-lang=""><code>No signatures found matching the expected signature for payload</code></pre>
+<p>La silenciosa es no verificar nada. Tu endpoint de webhook es una URL pública que acepta POST y activa productos. El cuerpo del request lo escribe quien quiera. Sin firma, la única barrera entre un desconocido y una cuenta premium gratis es que no adivine el formato de tu JSON, y el formato de tu JSON está documentado por el proveedor.</p>
+<p>Esta nota es cómo verificar bien, con los tres errores que hacen que la firma no valide y el cuarto que hace que valide de más.</p>
+<h2>Antes que nada: no todos los rails firman</h2>
+<p>Es la primera cosa que hay que saber, porque cambia toda la defensa.</p>
+<div class='tabla-wrap'><table><tr><th>Rail</th><th>¿Firma el webhook?</th><th>Tu defensa</th></tr><tr><td>Stripe</td><td>Sí, header <code>stripe-signature</code> (timestamp + <code>v1=…</code>)</td><td>Verificar la firma</td></tr><tr><td>Lemon Squeezy</td><td>Sí, HMAC-SHA256 del body con el secreto que elegís vos</td><td>Verificar la firma</td></tr><tr><td>MercadoPago</td><td>En la cuenta con la que probamos, no llegaba <code>x-signature</code></td><td>Re-consultar el pago a la API y <strong>validar el monto</strong></td></tr></table></div>
+<p>Si tu rail no firma —o si te toca una cuenta donde el header no viene—, la firma no puede ser tu control. Ahí la defensa es aritmética: pedirle el pago a la API del proveedor y comparar el monto contra tu precio. Eso está contado en detalle en <a href="integrar-mercadopago-en-nextjs.html">la guía de integración de MercadoPago</a>.</p>
+<p>El resto de esta nota es para los que sí firman.</p>
+<h2>Error 1: leer el body con <code>req.json()</code></h2>
+<p>Es el que produce el mensaje de arriba, y el que más tiempo consume, porque el código parece impecable.</p>
+<p>La firma se calcula sobre <strong>los bytes exactos</strong> que el proveedor te mandó. Si hacés <code>await req.json()</code> y después volvés a serializar para verificar, estás firmando otro texto: <code>JSON.stringify</code> no garantiza el mismo orden de claves, no conserva los espacios, y convierte los números a su representación canónica. Un solo byte distinto y el digest no coincide. Nunca. No es intermitente ni depende del entorno: no valida jamás.</p>
+<p>La regla es leer el texto una vez, verificar sobre ese texto, y recién después parsearlo.</p>
+<pre data-lang="ts"><code>// src/app/api/webhooks/stripe/route.ts
+export const runtime = &quot;nodejs&quot;;        // node:crypto — ver el final de la nota
+export const dynamic = &quot;force-dynamic&quot;; // nunca cachear un webhook
+
+export async function POST(req: Request) {
+  const rawBody = await req.text();                    // ← el texto EXACTO
+  const firma = req.headers.get(&quot;stripe-signature&quot;);
+
+  const v = await verifyEvent(rawBody, firma);
+  if (!v.ok) {
+    // 400 a propósito: un 500 haría que el proveedor reintente para siempre
+    // un evento que nunca va a validar.
+    return Response.json({ error: v.reason }, { status: 400 });
+  }
+
+  // Recién acá el contenido es confiable.
+  return procesar(v.event);
+}</code></pre>
+<p>Dos trampas de Next.js alrededor de esto:</p>
+<ul><li><strong>No podés leer el body dos veces.</strong> Si algún middleware o helper ya consumió el stream, <code>req.text()</code> devuelve vacío y la firma falla con el mismo mensaje. Si necesitás el objeto, parseá el texto: <code>JSON.parse(rawBody)</code>.</li><li><strong>En el Pages Router hay que apagar el body parser</strong> (<code>export const config = { api: { bodyParser: false } }</code>) y leer el stream a mano. En App Router no hace falta: <code>req.text()</code> ya te da el crudo.</li></ul>
+<h2>Error 2: el secreto equivocado</h2>
+<p>El segundo error no rompe en producción, rompe en tu máquina, y consume una tarde entera porque el mensaje de error es idéntico al del error 1.</p>
+<p>En Stripe, <code>whsec_…</code> no es uno por cuenta: <strong>es uno por endpoint</strong>. Y el que te imprime <code>stripe listen</code> cuando reenviás eventos a localhost es otro distinto de los del Dashboard.</p>
+<div class='tabla-wrap'><table><tr><th>Dónde</th><th>Qué secreto va</th></tr><tr><td>Local con <code>stripe listen --forward-to localhost:3000/api/webhooks/stripe</code></td><td>El <code>whsec_</code> que imprime <strong>ese comando</strong></td></tr><tr><td>Preview / staging</td><td>El del endpoint de staging del Dashboard</td></tr><tr><td>Producción</td><td>El del endpoint de producción del Dashboard</td></tr></table></div>
+<p>Copiar el de producción a <code>.env.local</code> es el camino corto a "mi código anda en prod y no anda en mi máquina". En Lemon Squeezy el secreto lo elegís vos al crear el webhook, así que el problema es el inverso: es fácil dejar el mismo string en los tres entornos y descubrir tarde que un evento de test activó una cuenta real.</p>
+<p>Y lo obvio que igual conviene decir: <code>STRIPE_WEBHOOK_SECRET</code> y <code>LEMONSQUEEZY_WEBHOOK_SECRET</code> son <strong>server-only</strong>. Ninguna lleva prefijo <code>NEXT_PUBLIC_</code>. Una variable con ese prefijo termina en el bundle del navegador, que cualquiera lee con dos clics.</p>
+<h2>Error 3: comparar el digest con <code>===</code></h2>
+<p>Cuando el proveedor te manda un HMAC pelado —el caso de Lemon Squeezy—, lo tenés que calcular y comparar vos. La forma intuitiva:</p>
+<pre data-lang="ts"><code>// ❌ MAL
+return digestCalculado === firmaRecibida;</code></pre>
+<p><code>===</code> sobre strings corta en el primer byte distinto. El tiempo que tarda en devolver <code>false</code> depende de cuántos caracteres coincidieron. Con suficientes intentos medidos, eso filtra el digest byte por byte. Es un ataque incómodo de montar sobre internet y trivial si el atacante está cerca de tu infraestructura, y arreglarlo cuesta tres líneas.</p>
+<pre data-lang="ts"><code>import { createHmac, timingSafeEqual } from &quot;node:crypto&quot;;
+
+export function verifyWebhookSignature(
+  rawBody: string,
+  signature: string | null | undefined,
+): boolean {
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+  if (!secret || !signature) return false;
+  try {
+    const digest = createHmac(&quot;sha256&quot;, secret).update(rawBody, &quot;utf8&quot;).digest(&quot;hex&quot;);
+    const recibida = signature.trim().toLowerCase();
+    // timingSafeEqual LANZA si los buffers miden distinto: la longitud se
+    // compara antes. Esa comparación no filtra nada útil — la longitud de un
+    // digest hex de SHA-256 es pública: siempre 64.
+    if (recibida.length !== digest.length) return false;
+    return timingSafeEqual(Buffer.from(digest, &quot;utf8&quot;), Buffer.from(recibida, &quot;utf8&quot;));
+  } catch {
+    // Fail-closed: cualquier cosa rara (secreto con encoding inválido, header
+    // con bytes no-ASCII) es firma inválida. Nunca &quot;pasá igual&quot;.
+    return false;
+  }
+}</code></pre>
+<p>Ese <code>catch</code> que devuelve <code>false</code> es la parte que más se olvida. Un <code>throw</code> sin capturar en el handler se convierte en un 500, y un 500 le dice al proveedor "reintentá": vas a tener un evento inválido golpeando tu endpoint indefinidamente.</p>
+<p>En Stripe no hace falta escribir nada de esto. <code>constructEventAsync</code> parsea el header —que trae el timestamp y <strong>una o varias</strong> firmas <code>v1</code>, porque durante una rotación de secreto conviven dos—, compara en tiempo constante y aplica una tolerancia temporal. Reescribirlo a mano es exactamente el tipo de código donde el bug no se ve hasta que alguien se activa el producto gratis.</p>
+<h2>El cuarto: el replay, que valida de más</h2>
+<p>Los tres anteriores hacen que una firma buena sea rechazada. Este es el opuesto: una firma legítima aceptada dos veces.</p>
+<p>Un webhook firmado es una prueba de que <strong>ese cuerpo</strong> salió del proveedor. No es una prueba de que salió recién. Si alguien captura un <code>checkout.session.completed</code> válido y lo reenvía cien veces, las cien firmas son correctas.</p>
+<p>Stripe corta la mayor parte de eso con el timestamp del header y una ventana de tolerancia: un evento viejo no valida. En un HMAC pelado como el de Lemon Squeezy no hay timestamp, así que la firma sola no te protege del reenvío.</p>
+<p><strong>Lo que te protege en los dos casos es la idempotencia</strong>, y por eso no es una optimización sino un control de seguridad: si el reclamo del pago es atómico y la clave es el id del pago —no el id del evento—, el reenvío número cien encuentra la fila ya reclamada, devuelve 200 y no activa nada. El detalle de ese reclamo está en <a href="webhook-mercadopago-idempotencia.html">la nota sobre idempotencia</a>.</p>
+<h2>Node o Edge: elegí antes de escribir</h2>
+<p><code>node:crypto</code> no existe en el Edge runtime. Si tu handler usa <code>createHmac</code>, la route necesita <code>export const runtime = "nodejs"</code>.</p>
+<p>Si necesitás Edge, la alternativa es <code>crypto.subtle</code> de Web Crypto, que también compara en tiempo constante pero es asíncrona:</p>
+<pre data-lang="ts"><code>const key = await crypto.subtle.importKey(
+  &quot;raw&quot;, new TextEncoder().encode(secret),
+  { name: &quot;HMAC&quot;, hash: &quot;SHA-256&quot; }, false, [&quot;verify&quot;],
+);
+const ok = await crypto.subtle.verify(&quot;HMAC&quot;, key, firmaBytes, new TextEncoder().encode(rawBody));</code></pre>
+<p>Con el SDK de Stripe, la variante <code>constructEventAsync</code> es la que funciona en los dos: en Node usa el crypto nativo y en Edge/Workers usa Web Crypto. La versión sincrónica tira <code>SubtleCrypto is only available async</code> justo en el entorno donde la desplegaste.</p>
+<h2>El test que parece probar la firma y no prueba nada</h2>
+<p>Este es el que nos pasó a nosotros, y lo contamos porque es fácil de repetir.</p>
+<p>Para testear el motor del webhook sin variables de entorno, le inyectamos el verificador como dependencia y en los tests le pasamos uno falso: firma correcta, evento válido; firma incorrecta, rechazo. El archivo entero en verde.</p>
+<p>Lo que esos tests prueban es que <strong>el motor reacciona bien a una firma rechazada</strong>. No prueban que la verificación funcione. Con el verificador real mutado a un <code>JSON.parse</code> —o sea, aceptando cualquier cosa— seguían todos en verde.</p>
+<p>El arreglo es un archivo aparte que ejercita la implementación real, firmando el payload con el secreto de prueba y comprobando los dos lados: que la firma válida pase y que cada mutación (secreto distinto, un byte cambiado en el body, header ausente, timestamp fuera de tolerancia) no pase.</p>
+<pre data-lang="ts"><code>it(&quot;un byte cambiado en el body invalida la firma&quot;, async () =&gt; {
+  const body = JSON.stringify({ id: &quot;evt_1&quot;, type: &quot;checkout.session.completed&quot; });
+  const firma = firmarComoStripe(body, SECRETO);           // implementación real
+  expect((await verifyEvent(body, firma)).ok).toBe(true);
+  expect((await verifyEvent(body + &quot; &quot;, firma)).ok).toBe(false);
+});</code></pre>
+<p>La regla general: <strong>si podés romper la implementación y tus tests siguen verdes, tus tests no la están probando.</strong> Vale para la firma, para la validación de monto y para cualquier control que separe tu producto de la gente que no pagó.</p>
+<h2>Checklist</h2>
+<ul><li>El handler lee <code>await req.text()</code> antes que nada, y parsea después de verificar.</li><li>El secreto es el del endpoint que estás usando (el de <code>stripe listen</code> es otro).</li><li>Ninguna variable de webhook lleva <code>NEXT_PUBLIC_</code>.</li><li>La comparación de digests es en tiempo constante, con la longitud chequeada antes.</li><li>El verificador nunca lanza: cualquier error es firma inválida.</li><li>Firma inválida devuelve <strong>400</strong>, no 500.</li><li>Hay idempotencia por id del pago, que es lo que corta el replay.</li><li>Existe al menos un test contra la implementación real de verificación, no contra un doble.</li></ul>
+<hr>
+<p>Todo esto —verificación real de Stripe y Lemon Squeezy, el reclamo idempotente con lease, y la validación de monto para el rail que no firma— viene armado y probado en <strong>Pagos LATAM Kit</strong>, un boilerplate de pagos para Next.js App Router y Supabase con 110 tests, de los cuales 9 existen solo para que la verificación de firma no se pueda romper sin que algo se ponga rojo.</p>
+<p>Si querés que te avise cuando salga, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
+  <div class="cierre">
+    <h3>Pagos LATAM Kit</h3>
+    <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
+    con 110 tests y las 7 lecciones de producción adentro.</p>
+    <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
+  </div>
+  <a class="volver" href="../index.html">← Volver</a>
+</article>
+</body>
+</html>

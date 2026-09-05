@@ -173,7 +173,7 @@ a.card.art h3{color:var(--texto)}
 </div></section>
 
 <section><div class="env">
-  <h2>108 tests, y no son decorativos</h2>
+  <h2>110 tests, y no son decorativos</h2>
   <p class="lead">Cualquiera puede decir que su código está probado. Esto es lo que pasa
   cuando se rompe a propósito cada control: si los tests no cazaran el fallo, no servirían
   de nada.</p>
@@ -182,6 +182,7 @@ a.card.art h3{color:var(--texto)}
     <tr><td>el orden del webhook (a la forma intuitiva)</td><td><strong>10</strong></td></tr>
     <tr><td>la validación de monto de Stripe y Lemon Squeezy</td><td><strong>8</strong></td></tr>
     <tr><td>la verificación de firma HMAC de los dos rails</td><td><strong>9</strong></td></tr>
+    <tr><td>la escala de las monedas sin decimales (CLP, PYG)</td><td><strong>4</strong></td></tr>
   </table></div>
   <p class="nota">El kit se typecheckea y se testea solo, antes de que copies una línea:
   <code>npm install &amp;&amp; npx tsc --noEmit &amp;&amp; npx vitest run</code>.</p>
@@ -223,6 +224,8 @@ a.card.art h3{color:var(--texto)}
     <a class="card art" href="articulos/boilerplates-saas-2026-comparativa.html"><h3>Boilerplates de SaaS en 2026: cuál conviene si cobrás en LATAM</h3><p>ShipFast, Supastarter y Makerkit comparados con honestidad: en qué es mejor cada uno, qué comparten los tres, y qué te falta si cobrás desde Argentina.</p></a>
     <a class="card art" href="articulos/cobrar-en-argentina-y-latam-desde-una-app.html"><h3>Cómo cobrar en Argentina y LATAM desde tu app: MercadoPago, Stripe o Lemon Squeezy</h3><p>Qué monedas emite cada rail, cuál deposita en un banco argentino y cuándo conviene cada uno. Con el límite real de la cuenta MLA y el retorno del checkout.</p></a>
     <a class="card art" href="articulos/integrar-mercadopago-en-nextjs.html"><h3>Integrar MercadoPago en Next.js (App Router): la guía que me hubiera ahorrado tres días</h3><p>Crear la preferencia con fetch a la API REST, recibir el webhook y validar el monto. Con el orden correcto de idempotencia y qué status HTTP devolver.</p></a>
+    <a class="card art" href="articulos/monedas-sin-decimales-clp-pyg-stripe.html"><h3>El bug de los centavos: monedas sin decimales y el pago de CLP 15.000 que tu app lee como 150</h3><p>Cada rail de pago habla en una escala distinta. Dividir por 100 sin mirar la moneda rechaza ventas legítimas en CLP o PYG, y en el otro sentido regala el producto por 19 centavos.</p></a>
+    <a class="card art" href="articulos/verificar-firma-webhook-pago-nextjs.html"><h3>Verificar la firma de un webhook de pago en Next.js: el body crudo y los tres errores que se pagan caro</h3><p>Por qué req.json() rompe la firma para siempre, qué secreto va en cada endpoint y por qué comparar con === es un agujero. Stripe y Lemon Squeezy, con el test que de verdad prueba la verificación.</p></a>
     <a class="card art" href="articulos/webhook-mercadopago-idempotencia.html"><h3>El bug de idempotencia que hace que tu usuario pague y no reciba nada</h3><p>MercadoPago manda varias notificaciones IPN por el mismo pago. Si deduplicás antes de resolver el estado, el usuario paga y nunca recibe lo que compró.</p></a>
   </div>
 </div></section>

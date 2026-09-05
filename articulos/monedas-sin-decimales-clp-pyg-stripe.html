@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El bug de los centavos: monedas sin decimales y el pago de CLP 15.000 que tu app lee como 150 — Plomada</title>
+<meta name="description" content="Cada rail de pago habla en una escala distinta. Dividir por 100 sin mirar la moneda rechaza ventas legítimas en CLP o PYG, y en el otro sentido regala el producto por 19 centavos.">
+<meta name="keywords" content="monedas sin decimales stripe, zero decimal currency, unit_amount stripe clp, cobrar en pesos chilenos, validar monto webhook">
+<link rel="canonical" href="https://arielvega-saas.github.io/plomada/articulos/monedas-sin-decimales-clp-pyg-stripe.html">
+<meta property="og:title" content="El bug de los centavos: monedas sin decimales y el pago de CLP 15.000 que tu app lee como 150">
+<meta property="og:description" content="Cada rail de pago habla en una escala distinta. Dividir por 100 sin mirar la moneda rechaza ventas legítimas en CLP o PYG, y en el otro sentido regala el producto por 19 centavos.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --fondo:#0B0F14; --panel:#121821; --panel2:#171F2A; --linea:#232D3B;
+  --texto:#E6EDF5; --tenue:#8A99AC; --acento:#00B37E; --acento2:#00D394;
+  --alerta:#E0A33E; --radio:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--texto);
+  font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.65;font-size:16.5px;
+  -webkit-font-smoothing:antialiased}
+.env{max-width:900px;margin:0 auto;padding:0 22px}
+code,kbd,pre{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--acento2)}
+
+/* hero */
+header.hero{padding:76px 0 56px;border-bottom:1px solid var(--linea)}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--acento);font-weight:600;margin-bottom:18px}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.06;margin:0 0 20px;font-weight:800;
+  letter-spacing:-.022em;text-wrap:balance}
+h1 .hl{color:var(--acento2)}
+.sub{font-size:19px;color:var(--tenue);max-width:62ch;margin:0 0 30px}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;background:var(--acento);color:#04120C;font-weight:700;
+  padding:13px 24px;border-radius:var(--radio);text-decoration:none;border:0;
+  font-size:16px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acento2)}
+.btn.ghost{background:transparent;color:var(--texto);border:1px solid var(--linea)}
+.btn.ghost:hover{background:var(--panel2)}
+.nota{font-size:13.5px;color:var(--tenue);margin-top:12px}
+
+section{padding:56px 0;border-bottom:1px solid var(--linea)}
+h2{font-size:27px;margin:0 0 8px;font-weight:700;letter-spacing:-.015em;text-wrap:balance}
+.lead{color:var(--tenue);margin:0 0 28px;max-width:64ch}
+
+/* problema */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);padding:20px}
+.card h3{margin:0 0 8px;font-size:16px;font-weight:700}
+.card p{margin:0;color:var(--tenue);font-size:15px}
+.card.bad h3::before{content:"✕ ";color:#E06C5A}
+.card.good h3::before{content:"✓ ";color:var(--acento2)}
+
+/* código */
+pre{background:var(--panel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:18px;overflow-x:auto;font-size:13.5px;line-height:1.6;margin:0 0 14px}
+.c-com{color:#5D6E85}
+.c-key{color:#7AA6F0}
+.c-str{color:var(--acento2)}
+.c-bad{color:#E06C5A}
+
+/* lecciones */
+ol.lecciones{list-style:none;counter-reset:l;padding:0;margin:0;display:grid;gap:10px}
+ol.lecciones li{counter-increment:l;background:var(--panel);border:1px solid var(--linea);
+  border-radius:var(--radio);padding:16px 18px 16px 54px;position:relative}
+ol.lecciones li::before{content:counter(l);position:absolute;left:18px;top:16px;
+  font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--acento);font-size:15px}
+ol.lecciones b{display:block;margin-bottom:3px;font-size:15.5px}
+ol.lecciones span{color:var(--tenue);font-size:14.5px}
+
+/* tabla */
+.tabla-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--linea)}
+th{color:var(--tenue);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em}
+td strong{color:var(--acento2)}
+.si{color:var(--acento2)} .no{color:#E06C5A}
+
+/* honestidad */
+.honesto{background:var(--panel2);border:1px solid var(--linea);border-left:3px solid var(--alerta);
+  border-radius:var(--radio);padding:20px 22px}
+.honesto ul{margin:10px 0 0;padding-left:20px;color:var(--tenue)}
+.honesto li{margin:7px 0}
+
+/* waitlist */
+.panel-lista{background:var(--panel);border:1px solid var(--linea);border-radius:14px;padding:32px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+input[type=email]{flex:1;min-width:240px;background:var(--fondo);border:1px solid var(--linea);
+  color:var(--texto);padding:13px 15px;border-radius:var(--radio);font-size:16px;font-family:inherit}
+input[type=email]:focus{outline:2px solid var(--acento);outline-offset:1px;border-color:transparent}
+footer{padding:36px 0 60px;color:var(--tenue);font-size:14px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}header.hero{padding:52px 0 40px}}
+</style>
+<style>
+article{max-width:720px;margin:0 auto;padding:0 22px}
+article h1{font-size:clamp(27px,5vw,40px);margin:26px 0 14px}
+article h2{margin:38px 0 10px;font-size:24px}
+article h3{margin:28px 0 8px;font-size:18px;font-weight:700}
+article p{margin:14px 0}
+article ul,article ol{margin:14px 0;padding-left:22px}
+article li{margin:7px 0}
+article li::marker{color:var(--acento)}
+article code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:.88em;color:var(--acento2)}
+article pre code{background:none;padding:0;color:var(--texto)}
+blockquote{border-left:3px solid var(--acento);background:var(--panel);margin:18px 0;
+  padding:12px 18px;border-radius:0 8px 8px 0;color:var(--tenue)}
+.volver{display:inline-block;margin:26px 0 0;color:var(--tenue);text-decoration:none;font-size:14.5px}
+.volver:hover{color:var(--acento2)}
+.meta-art{color:var(--tenue);font-size:14px;margin:0 0 8px}
+.cierre{margin-top:44px;padding:22px;background:var(--panel);border:1px solid var(--linea);
+  border-radius:12px}
+.cierre h3{margin:0 0 8px}
+</style>
+</head>
+<body>
+<article>
+  <a class="volver" href="../index.html">← Plomada · Pagos LATAM Kit</a>
+  <h1>El bug de los centavos: monedas sin decimales y el pago de CLP 15.000 que tu app lee como 150</h1>
+  <p class="meta-art">2026-09-05</p>
+  <p>Un comprador chileno paga CLP 15.000. Tu webhook recibe <code>amount_total: 15000</code>, lo divide por 100 como hace con todo, le da 150, lo compara contra tu precio de 15.000 y lo rechaza. El comprador pagó y ve un error. En tus logs figura "monto insuficiente", que es la mentira más convincente posible: parece que el tipo intentó estafarte.</p>
+<p>El mismo bug en la otra dirección es peor. Una orden de Lemon Squeezy llega con <code>subtotal: 1900</code> —diecinueve dólares en centavos— y tu código la compara contra el <code>19</code> del catálogo. Diecinueve es mayor o igual que diecinueve, así que también entra una orden de <strong>19 centavos</strong>. Ahí no hay error en ningún log: hay un usuario premium que pagó el uno por ciento.</p>
+<p>Los dos salen de lo mismo: cada rail de pago habla en una escala distinta y ninguno te avisa cuál.</p>
+<h2>Qué escala usa cada rail</h2>
+<div class='tabla-wrap'><table><tr><th>Rail</th><th>Campo</th><th>Escala</th><th>CLP 15.000 llega como</th><th>USD 19 llega como</th></tr><tr><td>Stripe</td><td><code>amount_total</code></td><td>Unidad mínima de la moneda</td><td><code>15000</code></td><td><code>1900</code></td></tr><tr><td>Lemon Squeezy</td><td><code>subtotal</code> / <code>total</code></td><td>Centavos, siempre</td><td>la tienda cobra en su propia moneda</td><td><code>1900</code></td></tr><tr><td>MercadoPago</td><td><code>transaction_amount</code></td><td>Unidad mayor, con decimales</td><td>una cuenta argentina no emite CLP</td><td><code>19</code></td></tr></table></div>
+<p>Tres rails, tres convenciones. Y la de Stripe no es una regla fija: <strong>depende de la moneda</strong>. En USD la unidad mínima es el centavo, así que <code>1900</code> son diecinueve dólares. En CLP no hay centavos: la unidad mínima es el peso, y <code>15000</code> son quince mil pesos. El <code>/ 100</code> que funciona en USD destruye el número en CLP.</p>
+<h2>La lista, y la trampa que trae adentro</h2>
+<p>Stripe llama <strong>zero-decimal</strong> a las monedas donde el monto va tal cual, sin multiplicar. Las que importan si vendés en la región o en Asia:</p>
+<pre data-lang="ts"><code>export const ZERO_DECIMAL_CURRENCIES = new Set([
+  &quot;BIF&quot;, &quot;CLP&quot;, &quot;DJF&quot;, &quot;GNF&quot;, &quot;JPY&quot;, &quot;KMF&quot;, &quot;KRW&quot;, &quot;MGA&quot;,
+  &quot;PYG&quot;, &quot;RWF&quot;, &quot;VND&quot;, &quot;VUV&quot;, &quot;XAF&quot;, &quot;XOF&quot;, &quot;XPF&quot;,
+]);
+
+export function isZeroDecimal(currency: string): boolean {
+  return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase());
+}</code></pre>
+<p>Para LATAM las dos que cuentan son <strong>CLP</strong> (peso chileno) y <strong>PYG</strong> (guaraní). Ojo con las que parecen candidatas y no lo son: el peso colombiano (COP) y el peso argentino (ARS) tienen dos decimales para Stripe, aunque nadie en la calle pague con centavos.</p>
+<p>Y acá está la trampa: <strong>hay monedas que son cero decimales en la vida real y no lo son para la API.</strong> Stripe las agrupa como "special cases". Sus palabras sobre el chelín ugandés: la moneda pasó a ser de cero decimales, pero por compatibilidad hacia atrás hay que representarla como valor de dos decimales, siempre terminado en <code>00</code>. O sea que UGX 5 se manda y se recibe como <code>500</code>. Lo mismo con la corona islandesa (ISK), y HUF y TWD tienen su propia regla para payouts.</p>
+<p>Esas cuatro —<strong>ISK, HUF, TWD, UGX</strong>— van fuera de la lista, aunque tu intuición y la Wikipedia digan lo contrario.</p>
+<h2>Cómo lo tuvimos mal nosotros</h2>
+<p>Escribiendo esta nota encontramos que UGX estaba <strong>dentro</strong> de nuestra propia lista. El comentario del archivo decía, textual, que las special cases no iban ahí; el código las incluía igual. Un comentario correcto arriba de un <code>Set</code> equivocado.</p>
+<p>El efecto no era cosmético. Con UGX marcada como cero decimales, un pago de UGX 5 llega como <code>500</code>, el conversor a unidades mayores devuelve <code>500</code> en vez de <code>5</code>, y la validación de monto compara 500 contra tu precio y aprueba. <strong>Acceso otorgado por la centésima parte del precio</strong>: justo el agujero contra el que existe ese archivo, en la dirección que regala el producto.</p>
+<p>No es una moneda de nuestro mercado, y por eso mismo vale contarlo: los bugs de escala no viven donde mirás. Sobrevivió a la revisión adversarial del código porque el comentario decía lo correcto y nadie contrastó la lista contra la documentación. El arreglo fueron dos líneas y dos tests; encontrarlo llevó escribir un artículo.</p>
+<h2>Las dos direcciones del error</h2>
+<p>Vale tenerlas separadas en la cabeza, porque se detectan de forma distinta.</p>
+<div class='tabla-wrap'><table><tr><th>Dirección</th><th>Qué pasa</th><th>Cómo se ve</th></tr><tr><td>Dividís de más (tratás CLP como dos decimales)</td><td>El monto queda 100× más chico que el real</td><td>Ventas legítimas rechazadas; el cliente escribe enojado. <strong>Ruidoso</strong></td></tr><tr><td>Dividís de menos (tratás UGX como cero decimales, o comparás centavos contra unidades)</td><td>El monto queda 100× más grande que el real</td><td>Acceso otorgado por el 1% del precio. <strong>Silencioso</strong></td></tr></table></div>
+<p>La primera te cuesta ventas y te enterás el mismo día. La segunda te cuesta el producto y te enterás cuando revisás el revenue seis meses después, si lo revisás.</p>
+<h2>La conversión, en un solo lugar</h2>
+<p>La regla que hace que esto no vuelva: <strong>el <code>/ 100</code> no se escribe nunca a mano.</strong> Vive en dos funciones y todo lo demás las llama.</p>
+<pre data-lang="ts"><code>/** Unidades mínimas del proveedor → unidades mayores (las del catálogo). */
+export function toMajorUnits(amountMinor: number, currency: string): number {
+  return isZeroDecimal(currency) ? amountMinor : amountMinor / 100;
+}
+
+/** Unidades mayores (catálogo) → unidades mínimas del proveedor. */
+export function toMinorUnits(amountMajor: number, currency: string): number {
+  return Math.round(isZeroDecimal(currency) ? amountMajor : amountMajor * 100);
+}</code></pre>
+<p>El <code>Math.round</code> de la segunda no es decoración. <code>19.99 * 100</code> en punto flotante da <code>1998.9999999999998</code>, y <code>Math.floor</code> de eso te cobra un centavo de menos: no rompe nada, pero desalinea todos tus totales contra los del proveedor y hace imposible conciliar.</p>
+<p>Con eso, la validación de monto se escribe igual para todos los rails:</p>
+<pre data-lang="ts"><code>const pagado = toMajorUnits(sesion.amount_total, sesion.currency);
+const minimo = minPriceFor(planId, sesion.currency);   // catálogo, unidades mayores
+if (minimo === undefined || !(pagado &gt;= minimo)) {
+  return { ok: false, error: &quot;rejected_amount&quot; };      // se audita, NO se activa
+}</code></pre>
+<p>Dos detalles de esas dos líneas:</p>
+<ul><li><code>&gt;=</code> y no <code>==</code>: las cuotas con interés y las conversiones de moneda pueden dejar unos centavos a tu favor, y un <code>==</code> estricto rechazaría esa venta.</li><li>La forma negada <code>!(pagado &gt;= minimo)</code> y no <code>pagado &lt; minimo</code>: si <code>pagado</code> es <code>NaN</code> —porque el campo vino <code>null</code> o como string—, <code>&lt;</code> devuelve <code>false</code> y <strong>el pago pasa</strong>. La forma negada devuelve <code>true</code> y lo rechaza. Es un carácter de diferencia entre fallar cerrado y fallar abierto.</li></ul>
+<p>Y el monto tiene que salir de la fuente correcta. En los rails que firman el webhook, el body verificado sirve —de eso trata <a href="verificar-firma-webhook-pago-nextjs.html">la nota sobre verificación de firma</a>—. En MercadoPago, que en la cuenta con la que probamos no firmaba, el monto hay que ir a buscarlo a la API: el body lo escribe cualquiera. Está en <a href="integrar-mercadopago-en-nextjs.html">la guía de integración</a>.</p>
+<h2>El segundo bug, el que no rompe nada</h2>
+<p>Resuelta la validación, queda uno más silencioso todavía: la escala del libro de revenue.</p>
+<p>Si guardás cada transacción "en la unidad mínima del proveedor", CLP 15.000 entra como <code>15000</code> y USD 19 como <code>1900</code>. Los dos números son correctos y son incomparables. El día que sumes revenue total vas a sumar dos escalas distintas, y ningún test va a fallar, porque no hay nada que falle: es una suma de enteros que da un entero.</p>
+<p>La salida es elegir <strong>una</strong> escala para el libro y convertir al entrar, sin excepciones:</p>
+<pre data-lang="ts"><code>/** El libro guarda SIEMPRE centésimos de la unidad mayor, incluso en
+ *  monedas de cero decimales. Es la única forma de que sumar sea válido. */
+export function toLedgerCents(amountMajor: number): number {
+  return Math.round(amountMajor * 100);
+}</code></pre>
+<p>Con eso, CLP 15.000 se guarda como <code>1500000</code> y el mismo importe cobrado por MercadoPago también. Suenan raros esos ceros de más para una moneda sin centavos; es el precio de que la columna se pueda sumar.</p>
+<p>Y una advertencia que vale para cualquier reporte multi-moneda: convertir a USD con una tabla de tipos de cambio te sirve para BI agregado, no para contabilidad. Para cifras contables va el monto liquidado que informa el proveedor, que ya tiene su spread adentro.</p>
+<h2>Los tests que lo agarran</h2>
+<p>Tres, y son cortos:</p>
+<pre data-lang="ts"><code>it(&quot;ida y vuelta en las dos escalas&quot;, () =&gt; {
+  expect(toMajorUnits(1900, &quot;USD&quot;)).toBe(19);
+  expect(toMinorUnits(19, &quot;USD&quot;)).toBe(1900);
+  expect(toMajorUnits(15000, &quot;CLP&quot;)).toBe(15000);   // sin decimales
+  expect(toMinorUnits(15000, &quot;CLP&quot;)).toBe(15000);
+});
+
+it(&quot;las special cases NO son cero decimales&quot;, () =&gt; {
+  for (const c of [&quot;ISK&quot;, &quot;HUF&quot;, &quot;TWD&quot;, &quot;UGX&quot;]) {
+    expect(isZeroDecimal(c)).toBe(false);
+    expect(toMajorUnits(500, c)).toBe(5);
+  }
+});
+
+it(&quot;el libro guarda siempre centésimos&quot;, () =&gt; {
+  expect(toLedgerCents(toMajorUnits(15000, &quot;CLP&quot;))).toBe(1500000);
+  expect(toLedgerCents(toMajorUnits(1900, &quot;USD&quot;))).toBe(1900);
+});</code></pre>
+<p>El del medio es el que hubiera encontrado nuestro bug de UGX el primer día. No prueba una función complicada: prueba que <strong>una lista de datos coincida con la documentación del proveedor</strong>, que es donde viven los errores que ninguna revisión de lógica encuentra.</p>
+<h2>Cómo revisarlo en tu app, ahora</h2>
+<p>Sin desplegar nada:</p>
+<ol><li>Buscá <code>/ 100</code> y <code>* 100</code> en tu código. Cada aparición que no esté dentro de una función que reciba la moneda es un candidato.</li><li>Andá a la lista de monedas de tu catálogo. Si hay CLP, PYG, JPY o KRW, el bug ya está ahí esperando el primer comprador de ese país.</li><li>Comprobá tu comparación de monto: si dice <code>pagado &lt; minimo</code>, cambiala a <code>!(pagado &gt;= minimo)</code>.</li><li>Mirá una fila real de tu tabla de transacciones en cada moneda y preguntate si esas dos filas se pueden sumar.</li></ol>
+<hr>
+<p>Las conversiones de escala, la validación de monto de los tres rails y el libro de transacciones con una sola escala vienen armados y probados en <strong>Pagos LATAM Kit</strong>, un boilerplate de pagos para Next.js App Router y Supabase con 110 tests, incluidos los tres de arriba.</p>
+<p>Si querés que te avise cuando salga, dejá tu mail en <a href="../index.html#lista">la lista de espera</a>.</p>
+  <div class="cierre">
+    <h3>Pagos LATAM Kit</h3>
+    <p>Los rails de MercadoPago, Stripe y Lemon Squeezy para Next.js y Supabase,
+    con 110 tests y las 7 lecciones de producción adentro.</p>
+    <a class="btn" href="../index.html#lista">Avisame cuando salga</a>
+  </div>
+  <a class="volver" href="../index.html">← Volver</a>
+</article>
+</body>
+</html>
